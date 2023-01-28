@@ -6,19 +6,55 @@ import matplotlib.pyplot as plt
 class MHMC:  
     def __init__(
     self, 
-    rho: Callable, # the target distribution of the parameter
-    seed=123 # setting the random seed of the distribution
+    rho: Callable,
+    seed=123
     ) -> None:
+    
+        """
+        
+        Metropolis Hasting Monte Carlo Algorithm
+        
+        Parameters
+        ----------
+        rho: the target distribution of the parameter
+        seed: random seed of the distribution
+        
+        Returns
+        -------
+        None
+        
+        
+        """
+    
         np.random.seed(seed)
         self.rho = rho
 
     def predict(
         self,
-        theta0, # the initial value of the parameter
-        qProb: Callable, # probability of the proposal distribution of the parameter
-        qSamp: Callable, # draw the sample with the proposal distribution
-        epoch: int # run the MCMC for n epoch
+        theta0,
+        qProb: Callable,
+        qSamp: Callable,
+        epoch: int
     ) -> List[int]:
+    
+        """
+        
+        Predicting the value of the parameter, that maximize the target distribution
+        
+        Parameters
+        ----------
+        theta0: the initial value of the parameter
+        qProb: probability of the proposal distribution of the parameter
+        qSamp: draw the sample with the proposal distribution
+        epoch: run the MCMC for n epoch
+        
+        Returns
+        -------
+        theta_n: the prediction of the value of the parameter, that maximize the target distribution
+        
+        
+        """
+    
         self.qProb = qProb
         self.qSamp = qSamp
         self.theta_n = theta0
@@ -36,14 +72,35 @@ class MHMC:
     
     def PredictAndTest(
         self,
-        theta0, # the initial value of the parameter
-        qProb: Callable, # probability of the proposal distribution of the parameter
-        qSamp: Callable, # draw the sample with the proposal distribution
-        testFreq: int, # test frequency
-        epoch: int, # run the MCMC for n epoch
-        thetaTrue=[], # the true value of the parameter
+        theta0,
+        qProb: Callable,
+        qSamp: Callable,
+        testFreq: int,
+        epoch: int,
+        thetaTrue=[],
         runningTime=False
     ) -> List[float]:
+    
+        """
+    
+        Predicting the value of the parameter, that maximize the target distribution, and comparing the prediction value of the parameter and the true value of the parameter with a fixed frequency.
+        
+        Parameters
+        ----------
+        theta0: the initial value of the parameter
+        qProb: probability of the proposal distribution of the parameter
+        qSamp: draw the sample with the proposal distribution
+        testFreq: test Frequency
+        epoch: run the MCMC for n epoch
+        thetaTrue: the true value of the parameter
+        runningTime: deciding whether to calculate the running time of the algorithm
+        
+        Returns
+        -------
+        theta_n: the prediction of the value of the parameter, that maximize the target distribution
+        
+        
+        """
         if runningTime:
             self.start_time = time.time()
         if testFreq>epoch:
