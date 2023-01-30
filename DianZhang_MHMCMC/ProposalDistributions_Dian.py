@@ -19,7 +19,7 @@ class UniformProposalDistribution:
 
 # Gaussian Proposal distribution
 
-class GausianProposalDistributiob:
+class GausianProposalDistribution:
     def __init__(
         self,
         sd: float, # Standard deviation of the proposal distribution
