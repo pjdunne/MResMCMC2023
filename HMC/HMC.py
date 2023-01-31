@@ -66,7 +66,6 @@ def HMC(epoch, L, epsilon, U, grad_U, current_theta):
             theta_accept.append(theta)
         else:
             theta_reject.append(theta)
-            pass
             #return (current_theta) # reject
 
     return theta_accept, theta_reject
