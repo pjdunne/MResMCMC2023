@@ -49,7 +49,7 @@ class Likelihood_MultidimensionalGaussian:
 
         self.x = np.array(x)
         self.mu = np.array(mu)
-        res = ((2*np.pi)**(-self.Dim/2))*(self.detSigma**(-1/2))*np.exp(-((self.x-self.mu)@self.invSigma@(self.x-self.mu).T))
+        res = ((2*np.pi)**(-self.Dim/2))*(self.detSigma**(-1/2))*np.exp(-((self.x-self.mu)@self.invSigma@(self.x-self.mu).T)/2)
         return res
 
     def L(self, mu: List[float]) -> float:
@@ -94,10 +94,8 @@ class Likelihood_MultidimensionalGaussian:
 
 
         res = self.L(mu)
-        Res = []
-        for i in range(len(mu)):
-            subres = res
-            for k in range(len(self.Dataset)):
-                subres *= (self.Dataset[k][i]-mu[i])
-            Res.append(subres)
-        return Res
+        Res = self.invSigma@(np.array(self.Dataset[0])-np.array(mu))*res
+        
+        for k in range(1, len(self.Dataset)):
+            Res = self.invSigma@(np.array(self.Dataset[k])-np.array(mu))*Res
+        return list(Res)
