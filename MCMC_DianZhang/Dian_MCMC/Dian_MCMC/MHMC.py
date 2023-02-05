@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import Callable
 import numpy as np
 
 class MHMC:  
@@ -14,8 +14,8 @@ class MHMC:
         
         Arguments
         ----------
-        rho: the target distribution of the parameter
-        seed: the random seed of the distribution
+        rho (Callable): the target distribution of the parameter
+        seed (int): the random seed of the distribution
         
         Returns
         -------
@@ -36,27 +36,27 @@ class MHMC:
         qSamp: Callable,
         steps: int,
         OutputAcceptanceRate = True
-    ) -> List[int]:
-    
+    ):
+
         """
-        
+
         Generating the values of the parameter from the target distribution
-        
+
         Arguments
         ----------
         theta0: the initial value of the parameter
-        qProb: probability of the proposal distribution of the parameter
-        qSamp: draw the sample with the proposal distribution
-        steps: run the MCMC for n steps
-        OutputAcceptanceRate: deciding whether to output the acceptance rate of the Metropolis-Hasting Algorithm
-        
+        qProb (Callable): probability of the proposal distribution of the parameter
+        qSamp (Callable): draw the sample with the proposal distribution
+        steps (int): run the MCMC for n steps
+        OutputAcceptanceRate (bool): deciding whether to output the acceptance rate of the Metropolis-Hasting Algorithm
+
         Returns
         -------
         Theta: the values of the parameter accepted by the Metropolis-Hasting Monte Carlo Algorithm
-        
-        
+
+
         """
-        
+
         self.theta_n = theta0
         if OutputAcceptanceRate:
             self.acceptanceRate = 0
