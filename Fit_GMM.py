@@ -1,6 +1,13 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
 import numpy as np
 
 import matplotlib.pyplot as plt
+
 
 from scipy.stats import norm
 from scipy.stats import multivariate_normal
@@ -14,40 +21,85 @@ import seaborn as sns
 from sklearn.datasets import make_blobs
 from sklearn.mixture import GaussianMixture
 
+
+# In[2]:
+
+
 class FitGMM:
     '''
     Fits a random dataset to a Gaussian Mixture Model,
-    and extract/store its means, covariances, and weights. 
+    extract and store its means, covariances, and weights. 
+    
     '''
     def __init__(self, n_dimensions, n_components):
         '''
         Initializes parameters of the random dataset.
         
+        Arguments
+        n_dimensions [int]: number of dimensions of the input dataset
+        n_components [int]: number of components in the input dataset
+        
         '''
         self.n_dimensions = n_dimensions
         self.n_components = n_components
+    
+    def best_number_components(self, X):
+        """
+        Solve for the best number of components for GMM model based on BIC.
+
+        Arguments
+        X [np.array]: The input dataset.
+
+        Returns
+        self.n_components [int]: Best number of components.
+        
+        """
+        n_components_range = range(1, 10) # set the number of components between 1 to 10
+        bic = []
+        for n in n_components_range:
+            gmm = GaussianMixture(n_components = n)
+            gmm.fit(X)
+            bic.append(gmm.bic(X))
+        self.n_components = n_components_range[np.argmin(bic)]
+        print(f"Best number of components = {self.n_components}")
+        
+        return self.n_components
+
         
     def fit(self, X):
         '''
         Fits the input dataset into a Gaussian Mixture Model 
         and store the parameters means, covariances, and weights.
         
+        Arguments
+        X [np.array]: The input dataset to be fitted into a Gaussian Mixture Model
+        
+        Returns
+        None
+        
         '''
-        gmm = GaussianMixture(n_components = self.n_components)
+ 
+        best_n_components = self.best_number_components(X)
+        gmm = GaussianMixture(n_components = best_n_components)
         gmm.fit(X)
         self.means = gmm.means_
         self.covariances = gmm.covariances_
         self.weights = gmm.weights_
 
+
+# In[ ]:
+
+
 class GaussianMixtureModel:
     def __init__(self, FitGMM):
         '''
-        Initializes parameters of GaussianMixtureModel using the parameters means, covariances, and weights
+        Initializes parameters of GaussianMixtureModel 
+        using the parameters means, covariances, and weights
         which were stored in the FitGMM class.
         
         Arguments
         n_dimensions [int]: number of dimensions of the fitted dataset
-        n_components [int]: number of components in the fitted data
+        n_components [int]: number of components in the fitted dataset
         means [list]: means for each Gaussian component of the fitted dataset
         covs [list]: covariance matrices for each Gaussian component of the fitted dataset
         weights [list]: weights for each Gaussian component of the fitted dataset
@@ -148,9 +200,9 @@ class GaussianMixtureModel:
         
         return probs
     
-    def calculate_likelihoods(self, X):
+    def calculate_log_likelihoods(self, X):
         '''
-        Calculates the likelihood of the Gaussian Mixture Model for a given set of samples in X.
+        Calculates the log likelihood of the Gaussian Mixture Model for a given set of samples in X.
 
 
             The likelihood is calculated as the product of individual pdfs at the observed samples:
@@ -183,9 +235,9 @@ class GaussianMixtureModel:
         
         return log_likelihoods # return log-likelihood of each sample in dataset X
     
-    def plot_likelihood(self, X, probs):
+    def plot_log_likelihood(self, X, probs):
         '''
-        Plots the likelihood surface of data.
+        Plots the log likelihood surface of data.
 
         Arguments
         X [np.array]: dataset for which scatterplot will be plotted
@@ -207,19 +259,19 @@ class GaussianMixtureModel:
             xi = np.linspace(min(x), max(x), 500)
             yi = np.linspace(min(y), max(y), 500)
             X, Y = np.meshgrid(xi, yi)
-            Z = griddata((x, y), z, (X, Y), method='cubic')
+            Z = griddata((x, y), z, (X, Y), method = 'cubic')
 
             # plot the wireframe
-            # ax.plot_wireframe(X, Y, Z, rstride=10, cstride=10)
-            ax.plot_surface(X,Y,Z,cmap='coolwarm')
+            ax.plot_wireframe(X, Y, Z, rstride = 10, cstride = 10)
             
             # plot scatter plot
             ax.scatter(x, y, z, color = 'r',  marker = '.', alpha = 0.7)
 
-            ax.set_xlabel("mu1")
-            ax.set_ylabel("mu2")
-            ax.set_zlabel("Likelihood")
-            ax.set_title("Likelihood Plot")
+            ax.set_xlabel("$\mu1$")
+            ax.set_ylabel("$\mu2$")
+            ax.set_zlabel("Log likelihood")
+            ax.set_title("Log likelihood Plot")
             fig.tight_layout()
-            plt.savefig('likelihood')
+            plt.savefig('loglikelihood')
             fig.show()
+
