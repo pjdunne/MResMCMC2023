@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import numpy as np
@@ -22,7 +22,7 @@ from sklearn.datasets import make_blobs
 from sklearn.mixture import GaussianMixture
 
 
-# In[2]:
+# In[ ]:
 
 
 class FitGMM:
