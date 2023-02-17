@@ -101,7 +101,7 @@ class GaussianMixtureModel:
         n_dimensions [int]: number of dimensions of the fitted dataset
         n_components [int]: number of components in the fitted dataset
         means [list]: means for each Gaussian component of the fitted dataset
-        covs [list]: covariance matrices for each Gaussian component of the fitted dataset
+        covariances [list]: covariance matrices for each Gaussian component of the fitted dataset
         weights [list]: weights for each Gaussian component of the fitted dataset
         
         '''
