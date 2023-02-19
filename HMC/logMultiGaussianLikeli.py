@@ -49,7 +49,6 @@ class log_Likelihood_MultidimensionalGaussian:
 
         self.x = np.array(x)
         self.mu = np.array(mu)
-        # res = ((2*np.pi)**(-self.Dim/2))*(self.detSigma**(-1/2))*np.exp(-((self.x-self.mu)@self.invSigma@(self.x-self.mu).T)/2)
         res = -(1/2)*(self.Dim*np.log(2*np.pi) + np.log(self.detSigma) + ((self.x-self.mu)@self.invSigma@(self.x-self.mu).T))
         return res
 
