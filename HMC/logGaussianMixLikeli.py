@@ -23,14 +23,14 @@ class log_Likelihood_GaussianMixture:
         """
 
         self.Dim = Dim
-        self.pi = pi
+        self.pi = np.array(pi)
         self.Sigma = np.array(Sigma)
         self.detSigma = np.linalg.det(self.Sigma)
         assert ((self.Sigma==np.transpose(self.Sigma)).all())and(self.detSigma!=0), "The Sigma(Variance-Covariance Matrix) should be non-singular and symmetric"
         self.invSigma = np.linalg.inv(self.Sigma)
         self.Dataset = Dataset
     
-    def logf(self, x: List[float], mu: List[float], pi: list[float]) -> float:
+    def logf(self, x: List[float], mu: List[float]) -> float:
 
         """
         The log joint probability density function of the Gaussian Mixture
@@ -39,7 +39,6 @@ class log_Likelihood_GaussianMixture:
         ---------
         x: the random variable
         mu: the mean value of the standard gaussian distribution
-        pi: the mixing coefficient
 
         Returns
         -------
@@ -51,11 +50,32 @@ class log_Likelihood_GaussianMixture:
 
         self.x = np.array(x)
         self.mu = np.array(mu)
-        self.pi = np.array(pi)
-        res = sum(np.log(pi)*(-(1/2))*(self.Dim*np.log(2*np.pi) + np.log(self.detSigma) + ((self.x-self.mu)@self.invSigma@(self.x-self.mu).T)))
+        res = sum(np.log(self.pi)*(-(1/2))*(self.Dim*np.log(2*np.pi) + np.log(self.detSigma) + ((self.x-self.mu)@self.invSigma@(self.x-self.mu).T)))
         return res
 
-    def logL(self, mu: List[float], pi: List[float]) -> float:
+    def f(self, x: List[float], mu: List[float]) -> float:
+
+        """
+        The probability density function of the Gaussian Mixture
+
+        Arguments
+        ---------
+        x: the random variable
+        mu: the mean value of the standard gaussian distribution
+
+        Returns
+        -------
+        res: the probability density value of the random variable x
+
+
+        """
+
+        self.x = np.array(x)
+        self.mu = np.array(mu)
+        res = self.pi*((2*np.pi)**(-self.Dim/2))*(self.detSigma**(-1/2))*np.exp(-((self.x-self.mu)@self.invSigma@(self.x-self.mu).T)/2)
+        return res
+
+    def logL(self, mu: List[float]) -> float:
 
         """
         
@@ -64,7 +84,6 @@ class log_Likelihood_GaussianMixture:
         Arguments
         ---------
         mu: the mean value of Multidimensional Gaussian Distribution
-        pi: the mixing coefficient
 
         Retruns
         -------
@@ -76,7 +95,7 @@ class log_Likelihood_GaussianMixture:
 
         res = 0
         for i in range(len(self.Dataset)):
-            res += self.logf(self.Dataset[i], mu, pi)
+            res += self.logf(self.Dataset[i], mu)
 
         return res
 
@@ -89,7 +108,6 @@ class log_Likelihood_GaussianMixture:
         Arguments
         ---------
         mu: the mean value of Multidimensional Gaussian Distribution
-        pi: the mixing coefficient
 
         Retruns
         -------
@@ -98,9 +116,9 @@ class log_Likelihood_GaussianMixture:
 
         """
 
-        Res = sum(self.invSigma@(np.array(self.Dataset[0])-np.array(mu)))
+        Res = 0
         
-        for k in range(1, len(self.Dataset)):
-            Res += sum(self.invSigma@(np.array(self.Dataset[k])-np.array(mu)))
+        for k in range(0, len(self.Dataset)):
+            Res += ((self.f(self.Dataset[k],mu)) / (sum(self.f(self.Dataset,mu))))*(self.invSigma@(np.array(self.Dataset[k])-np.array(mu)))
 
         return list(Res)
