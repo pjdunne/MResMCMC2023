@@ -196,7 +196,8 @@ class GaussianMixtureModel:
         log_likelihoods [np.array]: log-likelihood of each sample in dataset X
         
         '''
-
+        X = np.asarray(X)
+        
         log_likelihoods = np.zeros(X.shape[0]) # initialize a numpy array of zeros to store log-likelihoods of each sample
         
         for i, x in enumerate(X):
