@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
-
 class GaussianMixtureModel:
     '''
      This class implements a Gaussian Mixture Model which has several methods for 
