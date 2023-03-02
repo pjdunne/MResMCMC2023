@@ -1,3 +1,18 @@
+import numpy as np
+
+import matplotlib.pyplot as plt
+from matplotlib import cm
+
+from scipy.stats import norm
+from scipy.stats import multivariate_normal
+from scipy.interpolate import griddata
+
+
+from mpl_toolkits.mplot3d import Axes3D
+
+import seaborn as sns
+
+
 class GaussianMixtureModel:
     '''
      This class implements a Gaussian Mixture Model which has several methods for 
