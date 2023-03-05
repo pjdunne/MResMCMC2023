@@ -41,8 +41,19 @@ class GaussianMixtureModel:
         self.noisy_data = None
 
         
-    def generate_data(self, n_samples, noise_scale=0.1):
-
+    def generate_data(self, n_samples, noise_scale=None):
+        '''
+        Generate data with Poisson flucuations
+        
+        Arguments
+        X [np.ndarra]: initial dataset we generate
+        noise_scale [float or None]: standard deviation of the Poisson noise added to the data
+        
+        Returns 
+        None
+        
+        '''
+        
         X = np.zeros((n_samples, self.n_dimensions))
         c = np.random.choice(self.n_components, size=n_samples, p=self.weights)
         for i in range(self.n_components):
@@ -57,10 +68,12 @@ class GaussianMixtureModel:
             bin_centers.append((bin_edges[i][:-1] + bin_edges[i][1:]) / 2.0)
 
         # add Poisson fluctuations to the value in each bin
+        # it takes the expected values for the Poisson distribution 
+        # and generates a new numpy array with Poisson fluctuations around these expected values
         noisy_data_hist = np.random.poisson(lam=data_hist)
 
-        noisy_data = np.array(np.meshgrid(*bin_centers)).T.reshape(-1,self.n_dimensions)
-        noisy_data = noisy_data.repeat(noisy_data_hist.flatten(), axis=0)
+        noisy_data = np.array(np.meshgrid(*bin_centers)).T.reshape(-1,self.n_dimensions) # reshpae
+        noisy_data = noisy_data.repeat(noisy_data_hist.flatten(), axis=0) # flattened
         noisy_data = noisy_data + np.random.normal(scale=noise_scale, size=noisy_data.shape)
         self.noisy_data = noisy_data
 
@@ -151,17 +164,18 @@ class GaussianMixtureModel:
 
 
 
-
     def plot_histograms(self, X, noise_scale=None):
         '''
         Plots histograms for data.
-        Arguments
-        X [np.array]: dataset for which histograms will be plotted
-        noise_scale [float]: standard deviation of the Poisson noise added to the data, if any
-        Returns
-        None
-        '''
 
+        Arguments:
+        X [np.array]: dataset for which histograms will be plotted
+        noise_scale [float]: standard deviation of the Poisson noise added to the data
+
+        Returns:
+        None
+
+        '''
         n_dimensions = X.shape[1]
 
         fig, axs = plt.subplots(n_dimensions, figsize=(6, 3*self.n_dimensions))
@@ -171,37 +185,42 @@ class GaussianMixtureModel:
                 noisy_data = np.random.normal(X[:, i], scale=noise_scale)
                 noisy_counts, noisy_edges = np.histogram(noisy_data, bins=30)
                 noisy_bin_centers = (noisy_edges[:-1] + noisy_edges[1:]) / 2.0
+
+                # Fit a Gaussian mixture model to the noisy data
+                gmm = GaussianMixture(n_components=self.n_components, covariance_type='full', max_iter=100)
+                gmm.fit(noisy_data.reshape(-1, 1))
+
             else:
                 noisy_counts, noisy_bin_centers = None, None
 
             data_counts, data_edges = np.histogram(X[:, i], bins=30)
             data_bin_centers = (data_edges[:-1] + data_edges[1:]) / 2.0
 
-            axs[i].bar(data_bin_centers, data_counts, alpha=0.5, label='Data', width=(data_bin_centers[1] - data_bin_centers[0]))
+            data_bars = axs[i].bar(data_bin_centers, data_counts, alpha=0.5, label='Data', width=(data_bin_centers[1] - data_bin_centers[0]))
 
-            if noisy_data is not None:
-                for j in range(len(data_counts)):
-                    idx = np.abs(noisy_bin_centers - data_bin_centers[j]).argmin()
-                    axs[i].scatter(data_bin_centers[j], noisy_counts[idx], color='red')
+            if noise_scale is not None:
+                noisy_points = axs[i].scatter(data_bin_centers, noisy_counts, color='red', label='Noisy data')
 
-            axs[i].set_xlabel('mu{}'.format(i+1))
-            axs[i].set_ylabel('Frequency')
-
-            # Fit a normal distribution to the data
-            if noise_scale is None:
-                mu, std = norm.fit(X[:, i])
-                xmin, xmax = axs[i].get_xlim()
-                x = np.linspace(xmin, xmax, 100)
-                p = norm.pdf(x, mu, std)
-                axs[i].plot(x, p*len(X[:,i])*(data_bin_centers[1] - data_bin_centers[0]), 'k', linewidth=2)
-
-                # Add the best fit line to the legend
-                axs[i].legend(['Best fit line', 'Data'], loc='upper right')
+            # Plot the Gaussian mixture fit for the noisy data
+            if noise_scale is not None:
+                x = np.linspace(data_bin_centers.min(), data_bin_centers.max(), 1000).reshape(-1, 1)
+                log_prob = gmm.score_samples(x)
+                best_fit, = axs[i].plot(x, np.exp(log_prob) * len(noisy_data) * (data_bin_centers[1] - data_bin_centers[0]), linewidth=2, label='Best fit')
             else:
-                axs[i].legend(['Noisy data', 'Data'], loc='upper right')
+                best_fit = None
+
+            if noise_scale is not None:
+                handles = [data_bars, noisy_points, best_fit]
+            else:
+                handles = [data_bars, best_fit]
+
+            axs[i].legend(handles=handles)
 
         fig.tight_layout()
         plt.show()
+
+
+
 
 
     def pdf(self, X):
@@ -243,9 +262,9 @@ class GaussianMixtureModel:
             return probs
 
          
-    def calculate_log_likelihoods(self, mean_and_cov):
+    def calculate_log_likelihoods(self, params):
         '''
-        Calculates the log-likelihood of the Gaussian Mixture Model for a given set of samples in X.
+        Calculates the log-likelihood of the Gaussian Mixture Model for a given parameter
         
             The likelihood is calculated as the product of individual pdfs at the observed samples:
             L(θ) = p(x_1, x_2, ..., x_N|θ) = Π_j=1^N p(x_j|θ)
@@ -255,8 +274,9 @@ class GaussianMixtureModel:
             logL(θ) = Σ_j=1^N log(p(x_j|θ)) 
 
         Arguments
-        mean_and_cov [list]: list of tuples containing the mean and covariance for each Gaussian component
-
+        params [list]: list of tuples containing the mean and covariance for each Gaussian component
+                             in shape of [([mean], [[cov]), ([mean], [[cov]),..., ([mean], [[cov])]
+        
         Returns
         log_likelihoods [np.array]: log-likelihood of each sample in dataset X
 
@@ -269,7 +289,7 @@ class GaussianMixtureModel:
             for j in range(self.n_components):
                 # calculate log-likelihood of each sample by
                 # adding product of mixture coefficient and pdf at sample x_j for each Gaussian component k
-                log_likelihood += self.weights[j] * multivariate_normal.pdf(x, mean = mean_and_cov[j][0], cov = mean_and_cov[j][1])
+                log_likelihood += self.weights[j] * multivariate_normal.pdf(x, mean = params[j][0], cov = params[j][1])
             log_likelihoods[i] = np.log(log_likelihood) # store in log_likelihoods numpy array
 
         return log_likelihoods # return log-likelihood of each sample in dataset X
