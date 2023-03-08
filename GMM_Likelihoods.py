@@ -276,7 +276,7 @@ class GaussianMixtureModel:
 
         Arguments
         params [list]: flattened 1D list containing the mean and covariance for each Gaussian component
-                       in shape of [mean1, mean2, ..., meanK, cov11, cov12, ..., cov1_D, cov21, cov22, ..., covK1, ..., covKD]
+                       in shape of [mean1, mean2, ..., meanK, cov11, cov12, ..., cov1D, cov21, cov22, ..., covK1, ..., covKD]
                        where K is the number of components, and D is the number of dimensions.
         
         Returns
@@ -286,7 +286,7 @@ class GaussianMixtureModel:
         n_dims = self.n_dimensions
         n_comp = self.n_components
         
-        # Reshape the 1D parameter list into mean and covariance matrices for each component
+        # reshape the 1D parameter list into mean and covariance matrices for each component
         means = np.reshape(params[:n_dims*n_comp], (n_comp, n_dims))
         covs_flat = params[n_dims*n_comp:]
         covs = []
@@ -296,8 +296,9 @@ class GaussianMixtureModel:
             cov_i_flat = covs_flat[start:end]
             cov_i = np.reshape(cov_i_flat, (n_dims, n_dims))
             covs.append(cov_i)
-        
-        log_likelihoods = np.zeros(self.noisy_data.shape[0]) # initialize a numpy array of zeros to store log-likelihoods of each sample
+            
+        # initialize a numpy array of zeros to store log-likelihoods of each sample
+        log_likelihoods = np.zeros(self.noisy_data.shape[0]) 
 
         for i, x in enumerate(self.noisy_data):
             log_likelihood = 0
@@ -308,7 +309,7 @@ class GaussianMixtureModel:
             log_likelihoods[i] = np.log(log_likelihood) # store in log_likelihoods numpy array
         
         total_log_likelihood = np.sum(log_likelihoods)
-        return total_log_likelihood # return log-likelihood of each sample in dataset X
+        return total_log_likelihood # return total log-likelihood of each sample given the parameters
 
 
 
