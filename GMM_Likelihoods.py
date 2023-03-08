@@ -264,7 +264,8 @@ class GaussianMixtureModel:
          
     def calculate_log_likelihoods(self, params):
         '''
-        Calculates the log-likelihood of the Gaussian Mixture Model for a given parameter
+        Pass this function to MCMCs so that parmameters can be inputted.
+        Calculates the total log-likelihood of the Gaussian Mixture Model for the given parameter.
         
             The likelihood is calculated as the product of individual pdfs at the observed samples:
             L(θ) = p(x_1, x_2, ..., x_N|θ) = Π_j=1^N p(x_j|θ)
@@ -274,25 +275,41 @@ class GaussianMixtureModel:
             logL(θ) = Σ_j=1^N log(p(x_j|θ)) 
 
         Arguments
-        params [list]: list of tuples containing the mean and covariance for each Gaussian component
-                             in shape of [([mean], [[cov]), ([mean], [[cov]),..., ([mean], [[cov])]
+        params [list]: flattened 1D list containing the mean and covariance for each Gaussian component
+                       in shape of [mean1, mean2, ..., meanK, cov11, cov12, ..., cov1_D, cov21, cov22, ..., covK1, ..., covKD]
+                       where K is the number of components, and D is the number of dimensions.
         
         Returns
-        log_likelihoods [np.array]: log-likelihood of each sample in dataset X
+        log_likelihoods [np.array]: log-likelihood from parameters
 
         '''
+        n_dims = self.n_dimensions
+        n_comp = self.n_components
+        
+        # Reshape the 1D parameter list into mean and covariance matrices for each component
+        means = np.reshape(params[:n_dims*n_comp], (n_comp, n_dims))
+        covs_flat = params[n_dims*n_comp:]
+        covs = []
+        for i in range(n_comp):
+            start = i * n_dims * n_dims
+            end = (i+1) * n_dims * n_dims
+            cov_i_flat = covs_flat[start:end]
+            cov_i = np.reshape(cov_i_flat, (n_dims, n_dims))
+            covs.append(cov_i)
         
         log_likelihoods = np.zeros(self.noisy_data.shape[0]) # initialize a numpy array of zeros to store log-likelihoods of each sample
 
         for i, x in enumerate(self.noisy_data):
             log_likelihood = 0
-            for j in range(self.n_components):
+            for j in range(n_comp):
                 # calculate log-likelihood of each sample by
                 # adding product of mixture coefficient and pdf at sample x_j for each Gaussian component k
-                log_likelihood += self.weights[j] * multivariate_normal.pdf(x, mean = params[j][0], cov = params[j][1])
+                log_likelihood += self.weights[j] * multivariate_normal.pdf(x, mean=means[j], cov=covs[j])
             log_likelihoods[i] = np.log(log_likelihood) # store in log_likelihoods numpy array
+        
+        total_log_likelihood = np.sum(log_likelihoods)
+        return total_log_likelihood # return log-likelihood of each sample in dataset X
 
-        return log_likelihoods # return log-likelihood of each sample in dataset X
 
 
     def plot_log_likelihood(self, X, probs):
