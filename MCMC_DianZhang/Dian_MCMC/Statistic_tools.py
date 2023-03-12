@@ -68,16 +68,18 @@ def ESS(thetas):
     n = len(thetas)
     return n/iact
 
-def auto_corr_plot(thetas, plot_nth_theta, theta_index, plot_together=True, figsize=(10, 10)):
+def auto_corr_plot(thetas, plot_nth_theta, theta_index, max_time_lag=None, data_range=[], plot_together=True, figsize=(10, 10)):
     """
     
     plot the auto-correlation of each time_lag
 
     Arguments
     ---------
-    thetas (List[List[float]]): the value of the the parameters 
+    thetas (List[List[float]]): the value of the the parameters
     plot_nth_theta (List[int]): the dimensions want to plot with the function
-    theta_index (List[]): the indexes of different dimension parameters 
+    theta_index (List[]): the indexes of different dimension parameters
+    max_time_lag (int): the maximum time lag value to plot with the function
+    data_range (List[int]) : the range of the data plotted by the function [t_min, t_max]
     plot_together (bool): deciding whether to plot all plots of auto-correlation together
     figsize : the figure size of the plots
 
@@ -90,12 +92,16 @@ def auto_corr_plot(thetas, plot_nth_theta, theta_index, plot_together=True, figs
     thetas = np.asarray(thetas)
     if len(thetas.shape)==1:
         thetas = np.expand_dims(thetas,axis=1)
-    m = thetas.shape[0] # the data size of the inputed thetas and the dimension of the datas
+    if not(data_range):
+        data_range = [0, thetas.shape[0]]
+    if not(max_time_lag):
+        max_time_lag = (data_range[1]-data_range[0])//30
     plt.rcParams["figure.figsize"] = figsize
     for i in plot_nth_theta:
-        theta_i = thetas[:, i]
-        acf = np.asarray([auto_correlation(thetas=theta_i, time_lag=t)[0] for t in range(0, m-1)])
-        plt.plot(np.asarray(range(0, m-1)), acf, label=f"The auto-correlation value of {theta_index[i]}")
+        theta_i = thetas[data_range[0]: data_range[1], i]
+        m = theta_i.shape[0] # the data size of the plotted dataset
+        acf = np.asarray([auto_correlation(thetas=theta_i, time_lag=t)[0] for t in range(0, max_time_lag-1)])
+        plt.plot(np.asarray(range(0, max_time_lag-1)), acf, label=f"The auto-correlation value of {theta_index[i]}")
         if not(plot_together):
             plt.legend()
             plt.xlabel("Time Lag Value")
