@@ -97,22 +97,23 @@ def auto_corr_plot(thetas, plot_nth_theta, theta_index, max_time_lag=None, data_
     if not(max_time_lag):
         max_time_lag = (data_range[1]-data_range[0])//30
     plt.rcParams["figure.figsize"] = figsize
-    for i in plot_nth_theta:
-        theta_i = thetas[data_range[0]: data_range[1], i]
-        m = theta_i.shape[0] # the data size of the plotted dataset
-        acf = np.asarray([auto_correlation(thetas=theta_i, time_lag=t)[0] for t in range(0, max_time_lag-1)])
-        plt.plot(np.asarray(range(0, max_time_lag-1)), acf, label=f"The auto-correlation value of {theta_index[i]}")
-        if not(plot_together):
+    with plt.style.context("ggplot"):
+        for i in plot_nth_theta:
+            theta_i = thetas[data_range[0]: data_range[1], i]
+            m = theta_i.shape[0] # the data size of the plotted dataset
+            acf = np.asarray([auto_correlation(thetas=theta_i, time_lag=t)[0] for t in range(0, max_time_lag-1)])
+            plt.plot(np.asarray(range(0, max_time_lag-1)), acf, label=f"The auto-correlation value of {theta_index[i]}")
+            if not(plot_together):
+                plt.legend()
+                plt.xlabel("Time Lag Value")
+                plt.ylabel("Auto-Correlation Value")
+                plt.show()
+
+        if plot_together:
             plt.legend()
             plt.xlabel("Time Lag Value")
             plt.ylabel("Auto-Correlation Value")
             plt.show()
-
-    if plot_together:
-        plt.legend()
-        plt.xlabel("Time Lag Value")
-        plt.ylabel("Auto-Correlation Value")
-        plt.show()
 
 def targetDis_step_plot(thetas, rho: Callable, target_type: str, figsize=(6,8)):
 
@@ -137,9 +138,10 @@ def targetDis_step_plot(thetas, rho: Callable, target_type: str, figsize=(6,8)):
     steps = list(range(datasize))
     target_vals = [rho(theta) for theta in thetas]
 
-    plt.rcParams["figure.figsize"] = figsize
-    plt.plot(steps, target_vals, label="the "+target_type+" value of each step of iteration")
-    plt.legend(fontsize=min(figsize)*2)
-    plt.xlabel("step")
-    plt.ylabel(target_type)
-    plt.show()
+    with plt.style.context("ggplot"):
+        plt.rcParams["figure.figsize"] = figsize
+        plt.plot(steps, target_vals, label="the "+target_type+" value of each step of iteration")
+        plt.legend(fontsize=min(figsize)*2)
+        plt.xlabel("step")
+        plt.ylabel(target_type)
+        plt.show()

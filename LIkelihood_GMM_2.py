@@ -34,12 +34,10 @@ class GaussianMixtureModel:
         '''
         self.n_dimensions = n_dimensions
         self.n_components = n_components
-
         self.means = means
         self.covs = covs
         self.weights = weights
         # initialize the noisy_data attribute to None
-        self.X = None
         self.noisy_data = None
 
         
@@ -48,7 +46,7 @@ class GaussianMixtureModel:
         Generate data with Poisson flucuations
         
         Arguments
-        X [np.ndarray]: initial dataset we generate
+        X [np.ndarra]: initial dataset we generate
         noise_scale [float or None]: standard deviation of the Poisson noise added to the data
         
         Returns 
@@ -61,55 +59,25 @@ class GaussianMixtureModel:
         for i in range(self.n_components):
             idx = (c == i)
             X[idx, :] = np.random.multivariate_normal(mean=self.means[i], cov=self.covs[i], size=np.sum(idx))
-        
-        self.X = X
 
-        
-        return X
-            
-            
-    def add_poisson_noise(self, X, noise_scale=None):
-        '''
-        Add Poisson noise to the data
-
-        Arguments
-        X [np.ndarray]: dataset to add noise to
-        noise_scale [float or None]: standard deviation of the Poisson noise added to the data
-
-        Returns 
-        np.ndarray: noisy data with Poisson noise added
-        '''
-
-        # first create a numpy histogram from the data
+        # first create a numpy histogram from the GMM
         bins = 30
-        data_counts, bin_edges = np.histogramdd(X, bins=bins)
+        data_hist, bin_edges = np.histogramdd(X, bins=bins)
         bin_centers = []
         for i in range(self.n_dimensions):
             bin_centers.append((bin_edges[i][:-1] + bin_edges[i][1:]) / 2.0)
 
-        # add Poisson fluctuations to the top value in each bin
+        # add Poisson fluctuations to the value in each bin
         # it takes the expected values for the Poisson distribution 
         # and generates a new numpy array with Poisson fluctuations around these expected values
-        noisy_counts = np.random.poisson(lam=data_counts)
+        noisy_data_hist = np.random.poisson(lam=data_hist)
+
         noisy_data = np.array(np.meshgrid(*bin_centers)).T.reshape(-1,self.n_dimensions) # reshpae
-        noisy_data = noisy_data.repeat(noisy_counts.flatten(), axis=0) # flattened
+        noisy_data = noisy_data.repeat(noisy_data_hist.flatten(), axis=0) # flattened
         noisy_data = noisy_data + np.random.normal(scale=noise_scale, size=noisy_data.shape)
-
-        # If the number of noisy data is greater than original, remove those
-        if len(noisy_data) > len(X):
-            noisy_data = noisy_data[:len(X)]
-        # If the number of noisy data is less than original, add the same data points as original data
-        elif len(noisy_data) < len(X):
-            extra_data = X[len(noisy_data):]
-            noisy_data = np.concatenate([noisy_data, extra_data])
-
         self.noisy_data = noisy_data
 
-
-        return noisy_data
-
-
-
+        return X, noisy_data
 
     
     
@@ -193,32 +161,24 @@ class GaussianMixtureModel:
             plt.savefig('2Dscatter')
 
         plt.show()
-        
-        
 
-    def plot_histograms(self, n_samples, noise_scale=None):
+
+
+    def plot_histograms(self, X, noise_scale=None):
         '''
-        Plots the original dataset as histograms, and plots the noisy data as fluctuated points to each bin with its best-fit line.
+        Plots histograms for data.
 
-        Arguments
-        n_samples [int]: number of samples to generate
+        Arguments:
+        X [np.array]: dataset for which histograms will be plotted
         noise_scale [float]: standard deviation of the Poisson noise added to the data
 
-        Returns
+        Returns:
         None
+
         '''
-
-        # generate data
-        X = self.generate_data(n_samples)
-        # add Poisson noise
-        X_noisy = self.add_poisson_noise(X, noise_scale)
-
         n_dimensions = X.shape[1]
 
-        fig, axs = plt.subplots(n_dimensions, figsize=(6, 3*n_dimensions))
-
-        X_values = []
-        noisy_data_values = []
+        fig, axs = plt.subplots(n_dimensions, figsize=(6, 3*self.n_dimensions))
 
         for i in range(n_dimensions):
             if noise_scale is not None:
@@ -237,7 +197,6 @@ class GaussianMixtureModel:
             data_bin_centers = (data_edges[:-1] + data_edges[1:]) / 2.0
 
             data_bars = axs[i].bar(data_bin_centers, data_counts, alpha=0.5, label='Data', width=(data_bin_centers[1] - data_bin_centers[0]))
-            axs[i].set_ylabel(f"mu{i+1}")
 
             if noise_scale is not None:
                 noisy_points = axs[i].scatter(data_bin_centers, noisy_counts, color='red', label='Noisy data')
@@ -257,64 +216,9 @@ class GaussianMixtureModel:
 
             axs[i].legend(handles=handles)
 
-            top_values = data_counts / (data_bin_centers[1] - data_bin_centers[0])
-            X_values.append(top_values)
-
-            if noise_scale is not None:
-                noisy_data_values.append(noisy_points.get_offsets()[:, 1])
-            else:
-                noisy_data_values.append(None)
-
         fig.tight_layout()
         plt.show()
 
-
-        
-    def plot_ratio_heat(self, grid_size=30):
-        '''
-        Plots the ratio of the noisy data to the original data as a heatmap.
-
-        Arguments
-        grid_size [int]: the number of grid cells in each dimension of the heatmap
-
-        Returns
-        None
-        '''
-        if self.X is None or self.noisy_data is None:
-            print('No data available.')
-            return
-
-        # rescale data to [0, 1] for plotting
-        X_min = self.X.min(axis=0)
-        X_max = self.X.max(axis=0)
-        X = (self.X - X_min) / (X_max - X_min)
-        noisy_data_min = self.noisy_data.min(axis=0)
-        noisy_data_max = self.noisy_data.max(axis=0)
-        noisy_data = (self.noisy_data - noisy_data_min) / (noisy_data_max - noisy_data_min)
-
-        # create a grid
-        grid_x, grid_y = np.meshgrid(np.linspace(0, 1, grid_size), np.linspace(0, 1, grid_size))
-        grid = np.hstack((grid_x.reshape(-1, 1), grid_y.reshape(-1, 1)))
-
-        # calculate the ratio for each grid point
-        ratio = np.zeros(grid.shape[0])
-        for i, point in enumerate(grid):
-            X_dist = np.linalg.norm(X - point, axis=1)
-            noisy_data_dist = np.linalg.norm(noisy_data - point, axis=1)
-            ratio[i] = (noisy_data_dist.sum() / X_dist.sum()) if X_dist.min() > 0 else 0
-
-        # reshape the ratio into a grid for plotting
-        ratio_grid = ratio.reshape(grid_size, grid_size)
-
-        # plot the heatmap
-        plt.imshow(ratio_grid, cmap='RdYlBu_r', origin='lower', extent=[-2, 10, -2, 10])
-        plt.colorbar()
-        plt.xlabel('mu1')
-        plt.ylabel('mu2')
-        plt.title('Ratio of noisy data to original data')
-        plt.show()
-
-        return ratio
 
 
 
@@ -365,9 +269,11 @@ class GaussianMixtureModel:
         
             The likelihood is calculated as the product of individual pdfs at the observed samples:
             L(θ) = p(x_1, x_2, ..., x_N|θ) = Π_j=1^N p(x_j|θ)
+
             Since likelihood of each point may be very small, leading to extremely small products, 
             a log likelihood is often used in practice:
             logL(θ) = Σ_j=1^N log(p(x_j|θ)) 
+
         Arguments
         params [list]: flattened 1D list containing the mean and covariance for each Gaussian component
                        in shape of [mean1, mean2, ..., meanK, cov11, cov12, ..., cov1D, cov21, cov22, ..., covK1, ..., covKD]
@@ -375,6 +281,7 @@ class GaussianMixtureModel:
         
         Returns
         log_likelihoods [np.array]: log-likelihood from parameters
+
         '''
         n_dims = self.n_dimensions
         n_comp = self.n_components
@@ -384,10 +291,23 @@ class GaussianMixtureModel:
         covs_flat = params[n_dims*n_comp:]
         covs = []
         for i in range(n_comp):
-            start = i * n_dims * n_dims
-            end = (i+1) * n_dims * n_dims
+            start = int(i * n_dims * (n_dims+1)/2)
+            end = int((i+1) * n_dims * (n_dims+1)/2)
             cov_i_flat = covs_flat[start:end]
-            cov_i = np.reshape(cov_i_flat, (n_dims, n_dims))
+            cov_i = np.asarray([[0 for _ in range(n_dims)] for _ in range(n_dims)])
+            for k in range(0, n_dims):
+                for l in range(0, k+1):
+                    c_kl = cov_i_flat[k*n_dims+l-1]
+                    if k==l:
+                        if c_kl<0:
+                            return np.log(1e-10)
+
+                        cov_i[k, l] = c_kl
+                    else:
+                        cov_i[k, l] = c_kl
+                        cov_i[l, k] = c_kl
+
+
             covs.append(cov_i)
             
         # initialize a numpy array of zeros to store log-likelihoods of each sample
@@ -404,7 +324,45 @@ class GaussianMixtureModel:
         total_log_likelihood = np.sum(log_likelihoods)
         return total_log_likelihood # return total log-likelihood of each sample given the parameters
 
-    
+
+
+
+    def calculate_log_likelihoods_mu(self, params):
+        '''
+        Pass this function to MCMCs so that parmameters can be inputted.
+        Calculates the total log-likelihood of the Gaussian Mixture Model for the given parameter.
+        
+            The likelihood is calculated as the product of individual pdfs at the observed samples:
+            L(θ) = p(x_1, x_2, ..., x_N|θ) = Π_j=1^N p(x_j|θ)
+
+            Since likelihood of each point may be very small, leading to extremely small products, 
+            a log likelihood is often used in practice:
+            logL(θ) = Σ_j=1^N log(p(x_j|θ)) 
+
+        Arguments
+        params [list]: flattened 1D list containing the mean and covariance for each Gaussian component
+                       in shape of [mean1, mean2, ..., meanK, cov11, cov12, ..., cov1D, cov21, cov22, ..., covK1, ..., covKD]
+                       where K is the number of components, and D is the number of dimensions.
+        
+        Returns
+        log_likelihoods [np.array]: log-likelihood from parameters
+
+        '''
+        n_dims = self.n_dimensions
+        n_comp = self.n_components
+        
+        # reshape the 1D parameter list into mean and covariance matrices for each component
+        means = np.reshape(params[:n_dims*n_comp], (n_comp, n_dims))
+            
+        # initialize a numpy array of zeros to store log-likelihoods of each sample
+        likelihoods = self.weights[0] * multivariate_normal.pdf(self.noisy_data, mean=means[0], cov=self.covs[0])
+        for j in range(1, n_comp):
+            # calculate log-likelihood of each sample by
+            # adding product of mixture coefficient and pdf at sample x_j for each Gaussian component k
+            likelihoods += self.weights[j] * multivariate_normal.pdf(self.noisy_data, mean=means[j], cov=self.covs[j])
+        log_likelihoods = np.log(likelihoods) # store in log_likelihoods numpy array
+        
+        return log_likelihoods.sum() # return total log-likelihood of each sample given the parameters
 
     def plot_log_likelihood(self, X, probs):
         '''
