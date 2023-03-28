@@ -1,7 +1,7 @@
 import numpy as np
 
 class Data_params_gen_GMM:
-    def __init__(self, n_components, n_dimensions, weights=[], mus=[], Sigmas=[], random_seed=123) -> None:
+    def __init__(self, n_components, n_dimensions, weights=[], mus=[], Sigmas=[], mu_range=10, random_seed=123) -> None:
         """
         
         initialize the Gaussian Mixture Model datapoint generator
@@ -13,6 +13,7 @@ class Data_params_gen_GMM:
         weightes (np.array); the weight of each gaussian model
         mus (np.array): the mean of each gaussian model
         Sigmas (np.array): the variance covariance matrix of each gaussian model
+        mu_range (flaot): the range to generate random mu for the gaussian models
         random_seed (int): the random seed
 
         Returns
@@ -31,7 +32,7 @@ class Data_params_gen_GMM:
         if list(mus):
             self.mus = mus
         else:
-            self.mus = np.random.choice(range(10), size=(self.n_components, self.n_dimensions))
+            self.mus = np.random.choice(range(-mu_range, mu_range), size=(self.n_components, self.n_dimensions))
 
         if list(Sigmas):
             self.Sigmas = Sigmas

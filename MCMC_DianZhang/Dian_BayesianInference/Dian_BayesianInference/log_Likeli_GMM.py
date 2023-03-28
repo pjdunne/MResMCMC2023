@@ -28,7 +28,7 @@ class Likeli_GMM_mus:
         self.n_components = n_components
         self.n_dimensions = self.Dataset.shape[1]
 
-    def calculate_log_likelihoods_mu(self, params):
+    def calculate_log_likelihoods(self, params):
         '''
 
         Calculating the log likelihood value
@@ -49,11 +49,11 @@ class Likeli_GMM_mus:
         means = np.reshape(params[:n_dims*n_comp], (n_comp, n_dims))
             
         # initialize a numpy array of zeros to store log-likelihoods of each sample
-        likelihoods = self.weights[0] * multivariate_normal.pdf(self.noisy_data, mean=means[0], cov=self.Sigmas[0])
+        likelihoods = self.weights[0] * multivariate_normal.pdf(self.Dataset, mean=means[0], cov=self.Sigmas[0])
         for j in range(1, n_comp):
             # calculate log-likelihood of each sample by
             # adding product of mixture coefficient and pdf at sample x_j for each Gaussian component k
-            likelihoods += self.weights[j] * multivariate_normal.pdf(self.noisy_data, mean=means[j], cov=self.Sigmas[j])
+            likelihoods += self.weights[j] * multivariate_normal.pdf(self.Dataset, mean=means[j], cov=self.Sigmas[j])
         log_likelihoods = np.log(likelihoods) # store in log_likelihoods numpy array
         
         return log_likelihoods.sum() # return total log-likelihood of each sample given the parameters

@@ -5,6 +5,7 @@ class MHMC:
     def __init__(
     self, 
     rho: Callable,
+    log_likelihood=False,
     seed=123
     ) -> None:
     
@@ -15,6 +16,7 @@ class MHMC:
         Arguments
         ----------
         rho (Callable): the target distribution of the parameter
+        log_likelihood (bool): whether the inputed target distribution is log likelihood function
         seed (int): the random seed of the distribution
         
         Returns
@@ -26,6 +28,9 @@ class MHMC:
     
         # Setting the random seed of the numpy
         np.random.seed(seed)
+
+        self.log_likelihood = log_likelihood
+
         # Saving the inputted target distribution
         self.rho = rho
 
@@ -65,7 +70,11 @@ class MHMC:
             self.Theta.append(list(self.theta_n))
             # Updating the parameter from the proposal disribution
             self.theta_nPlus1 = qSamp(self.theta_n)
-            self.alpha = min(1, (self.rho(self.theta_nPlus1)*qProb(self.theta_nPlus1,self.theta_n))/(self.rho(self.theta_n)*qProb(self.theta_n,self.theta_nPlus1)))
+            if self.log_likelihood:
+                self.alpha = min(1, np.exp(self.rho(self.theta_nPlus1) + np.log(qProb(self.theta_nPlus1,self.theta_n)) - (self.rho(self.theta_n) + np.log(qProb(self.theta_n,self.theta_nPlus1)))))
+            else:
+                self.alpha = min(1, (self.rho(self.theta_nPlus1)*qProb(self.theta_nPlus1,self.theta_n))/(self.rho(self.theta_n)*qProb(self.theta_n,self.theta_nPlus1)))
+
             # Deciding whether to reject the update of the parameter
             self.u = np.random.default_rng().uniform(0, 1, 1)[0]
             if(self.alpha>=self.u):

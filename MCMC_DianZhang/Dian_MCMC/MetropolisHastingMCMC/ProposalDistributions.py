@@ -75,7 +75,7 @@ class UniformProposalDistribution:
 
 
 
-class GausianProposalDistribution:
+class GaussianProposalDistribution:
     def __init__(
         self,
         sd: float,
