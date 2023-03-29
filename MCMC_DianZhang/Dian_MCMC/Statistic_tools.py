@@ -147,7 +147,7 @@ def targetDis_step_plot(thetas, rho: Callable, target_type: str, figsize=(6,8)):
         plt.show()
 
 
-def densities_plot(Thetas, plot_axis, bins, figsize=(10, 10), cmap='viridis'):
+def densities_plot(Thetas, plot_axis, bins, figsize=(10, 9), cmap='viridis'):
     """
     Plot the density of each axis and the heat map of each pair of axis    
 
@@ -167,15 +167,21 @@ def densities_plot(Thetas, plot_axis, bins, figsize=(10, 10), cmap='viridis'):
     if not(plot_axis):
         plot_axis = [i for i in range(Thetas.shape[1])]
     n_axis = len(plot_axis)
+    datasize = Thetas.shape[0]
     with plt.style.context("ggplot"):
 
         fig, axes = plt.subplots(ncols=n_axis, nrows=n_axis, figsize=figsize)
         for i in range(0,n_axis):
             for j in range(0, i+1):
                 if i==j:
-                    axes[i, j].hist(Thetas[:, plot_axis[i]], bins=bins)
+                    cs, bs, _ = axes[i, j].hist(Thetas[:, plot_axis[i]], bins=bins)
                     axes[i, j].set_xlabel(f"$x_{plot_axis[i]}$")
-                    axes[i, j].set_ylabel(f"Counts")
+                    axes[i, j].set_ylabel("Counts")
+                    max_count_idx = np.argmax(cs)
+                    bin_center = (bs[max_count_idx] + bs[max_count_idx+1]) / 2
+                    axes[i, j].axvline(x=bin_center, color='b', linestyle='--')
+                    axes[i, j].set_title("$argmax_{x}$(Counts)"+f" = {np.round(bin_center, 3)}", fontsize=10)
+
                 else:
                     hist = axes[i, j].hist2d(Thetas[:, plot_axis[i]], Thetas[:, plot_axis[j]], bins=bins, cmap=cmap)
                     axes[i, j].set_xlabel(f"$x_{plot_axis[i]}$")
@@ -183,9 +189,10 @@ def densities_plot(Thetas, plot_axis, bins, figsize=(10, 10), cmap='viridis'):
                     fig.delaxes(axes[j, i])
 
         # Add colorbar to the whole plot
-        cbar_ax = fig.add_axes([0.95, 0.15, 0.02, 0.7]) # left, bottom, width, height
+        cbar_ax = fig.add_axes([0.95, (1/n_axis)*1.1, 0.02, 1-(1/n_axis)*1.15]) # left, bottom, width, height
         fig.colorbar(hist[3], cax=cbar_ax)
 
         fig.subplots_adjust(right=0.85, wspace=0.3, hspace=0.3)
+        fig.tight_layout()
 
     plt.show()
