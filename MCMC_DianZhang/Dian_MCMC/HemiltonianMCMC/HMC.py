@@ -4,7 +4,9 @@ class HMC:
     def __init__(
         self,
         rho: Callable,
-        drho_dtheta: Callable,
+        drho_dtheta=None,
+        epsilon=1e-8,
+        log_likelihood=False,
         seed=123
     ) -> None:
 
@@ -29,6 +31,8 @@ class HMC:
         # Saving the inputted target distribution
         self.rho = rho
         self.drho_dtheta = drho_dtheta
+        self.epsilon = epsilon
+        self.log_likelihood = log_likelihood
 
     def U(
         self,
@@ -50,11 +54,14 @@ class HMC:
         """
 
 
-        return (- np.log(self.rho(theta)))
+        if self.log_likelihood:
+            return - self.rho(theta)
+        else:
+            return - np.log(self.rho(theta))
     
     def dU_dtheta(
         self,
-        theta: List[float]
+        theta: (np.array)
     ) -> List[float]:
 
         """
@@ -73,9 +80,19 @@ class HMC:
         """
 
 
-        self.DRho = self.drho_dtheta(theta)
-        self.Rho = self.rho(theta)*(-1)
-        return np.array([self.DR/self.Rho for self.DR in self.DRho])
+        if self.log_likelihood or (self.drho_dtheta==None): 
+            DU_dtheta = []
+            for i in range(len(theta)):
+                theta_pos = theta
+                theta_neg = theta
+                theta_pos[i] += self.epsilon
+                theta_neg[i] -= self.epsilon
+                DU_dtheta.append((self.U(theta_pos)-self.U(theta_neg))/2*self.epsilon)
+            return np.asarray(DU_dtheta)
+        else:
+            DRho = self.drho_dtheta(theta)
+            Rho = self.rho(theta)*(-1)
+            return np.asarray([DR/Rho for DR in DRho])
 
     def predict(
         self,
@@ -104,48 +121,48 @@ class HMC:
         """
 
 
-        self.theta_n = np.array(theta0)
+        self.theta0 = np.asarray(theta0)
         if OutputAcceptanceRate:
             self.acceptanceRate = 0
         self.Theta = []     
         for _ in range(0, steps):
-            self.Theta.append(list(self.theta_n))
+            self.Theta.append(list(self.theta0))
             # the ”positions” which are independent standard normal variables
-            self.p_nPlus1 = np.random.default_rng().normal(0, 1, len(self.theta_n))
-            self.theta_nPlus1 = self.theta_n
-            self.p_n = self.p_nPlus1
+            self.p1 = np.random.default_rng().normal(0, 1, len(self.theta_n))
+            self.theta1 = self.theta0
+            self.p0 = self.p1
             # At the beginning, take a half step for momentum.
-            self.p_nPlus1 = self.p_nPlus1 - (epsilon*self.dU_dtheta(self.theta_nPlus1)/2)
+            self.p1 = self.p1 - (epsilon*self.dU_dtheta(self.theta1)/2)
             for i in range(0,L):
                 # Take a full step for the position
-                self.theta_nPlus1 = self.theta_nPlus1 + epsilon*self.p_nPlus1
+                self.theta1 = self.theta1 + epsilon*self.p1
                 # Unless at the end of the trajectory, take a full step for the momentum
-                self.p_nPlus1 = (self.p_nPlus1 - epsilon*self.dU_dtheta(self.theta_nPlus1)) if (i<(L-1)) else self.p_nPlus1
+                self.p1 = (self.p1 - epsilon*self.dU_dtheta(self.theta_nPlus1)) if (i<(L-1)) else self.p1
             # At the end, take a half step for momentum.
-            self.p_nPlus1 = self.p_nPlus1 - (epsilon*self.dU_dtheta(self.theta_nPlus1)/2)
+            self.p1 = self.p1 - (epsilon*self.dU_dtheta(self.theta1)/2)
             # To make the proposal symmetric, negate momentum at end of trajectory
-            self.p_nPlus1 = -self.p_nPlus1
+            self.p1 = -self.p1
             # At start and end of trajectory, evaluate potential and kinetic energies
-            self.U_n = self.U(self.theta_n)
-            self.K_n = 0
+            self.U0 = self.U(self.theta0)
+            self.K0 = 0
             for self.pValue in self.p_n:
-                self.K_n += self.pValue**2
-            self.K_n /= 2
-            self.U_nPlus1 = self.U(self.theta_nPlus1)
-            self.K_nPlus1= 0
+                self.K0 += self.pValue**2
+            self.K0 /= 2
+            self.U1 = self.U(self.theta1)
+            self.K1= 0
             for self.pValue in self.p_nPlus1:
-                self.K_nPlus1 += self.pValue**2
-            self.K_nPlus1 /= 2
+                self.K1 += self.pValue**2
+            self.K1 /= 2
             # At end of trajectory deciding whether accept or reject the state , returning either the position at the end of the trajectory or the initial position
-            self.alpha = np.exp((self.U_n-self.U_nPlus1)+(self.K_n-self.K_nPlus1))
+            self.alpha = np.exp((self.U0-self.U1)+(self.K0-self.K1))
             self.u = np.random.default_rng().uniform(0, 1, 1)[0]
             if(self.alpha>self.u):
-                self.theta_n = self.theta_nPlus1
+                self.theta0 = self.theta1
                 if OutputAcceptanceRate:
                     self.acceptanceRate += 1
             else:
                 pass
-            self.Theta.append(list(self.theta_n))
+            self.Theta.append(list(self.theta0))
         if OutputAcceptanceRate:
             return self.Theta, (self.acceptanceRate/steps)
         else:
