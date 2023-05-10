@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from typing import Callable, List
     
 
-def auto_correlation(thetas, time_lag):
+def auto_correlation(Thetas, time_lag):
     
     """
     
@@ -20,23 +20,23 @@ def auto_correlation(thetas, time_lag):
 
     """
 
-    thetas = np.asarray(thetas)
-    if len((thetas.shape))==1:
-        thetas = np.expand_dims(thetas, axis=1)
-    (m, n) = thetas.shape
-    thetas_stds_pro = (np.std(thetas[0: m-time_lag], axis=0)*np.std(thetas[time_lag: m], axis=0))
+    Thetas = np.asarray(Thetas)
+    if len((Thetas.shape))==1:
+        Thetas = np.expand_dims(Thetas, axis=1)
+    (m, n) = Thetas.shape
+    thetas_stds_pro = (np.std(Thetas[0: m-time_lag], axis=0)*np.std(Thetas[time_lag: m], axis=0))
     auto_corr = []
     for i, thetai_stds_pro in enumerate(thetas_stds_pro):
         if thetai_stds_pro==0:
             auto_corr.append(0)
         else:
-            theta1 = thetas[0: m-time_lag, i]
-            theta2 = thetas[time_lag: m, i]
+            theta1 = Thetas[0: m-time_lag, i]
+            theta2 = Thetas[time_lag: m, i]
             auto_corr.append((np.mean(theta1*theta2) - np.mean(theta1)*np.mean(theta2))/thetai_stds_pro)
     return np.asarray(auto_corr)
 
 
-def ESS(thetas):
+def ESS(Thetas):
 
     """
     
@@ -52,12 +52,12 @@ def ESS(thetas):
     
     """
 
-    thetas =np.asarray(thetas)
-    if len(thetas.shape)==1:
-        thetas = np.expand_dims(thetas, axis=1)
+    Thetas =np.asarray(Thetas)
+    if len(Thetas.shape)==1:
+        Thetas = np.expand_dims(Thetas, axis=1)
     # Computing the autocorrelation function
-    (m, n) = thetas.shape
-    acf = np.asarray([auto_correlation(thetas=thetas, time_lag=t) for t in range(0, m)])
+    (m, n) = Thetas.shape
+    acf = np.asarray([auto_correlation(Thetas=Thetas, time_lag=t) for t in range(0, m)])
     # Computing the integrated autocorrelation tine
     iact = 1.0
     for t in range(1, len(acf)):
@@ -65,17 +65,16 @@ def ESS(thetas):
             if acf[t, i]<0:
                 acf[:, i] = 0
         iact += 2.0*acf[t]
-    n = len(thetas)
-    return n/iact
+    return m/iact
 
-def auto_corr_plot(thetas, plot_nth_theta, theta_index, max_time_lag=None, data_range=[], plot_together=True, figsize=(10, 10)):
+def auto_corr_plot(Thetas, plot_nth_theta, theta_index, max_time_lag=None, data_range=[], plot_together=True, figsize=(10, 10)):
     """
     
     plot the auto-correlation of each time_lag
 
     Arguments
     ---------
-    thetas (List[List[float]]): the value of the the parameters
+    Thetas (List[List[float]]): the value of the the parameters
     plot_nth_theta (List[int]): the dimensions want to plot with the function
     theta_index (List[]): the indexes of different dimension parameters
     max_time_lag (int): the maximum time lag value to plot with the function
@@ -89,19 +88,19 @@ def auto_corr_plot(thetas, plot_nth_theta, theta_index, max_time_lag=None, data_
 
     """
 
-    thetas = np.asarray(thetas)
-    if len(thetas.shape)==1:
-        thetas = np.expand_dims(thetas,axis=1)
+    Thetas = np.asarray(Thetas)
+    if len(Thetas.shape)==1:
+        Thetas = np.expand_dims(Thetas,axis=1)
     if not(data_range):
-        data_range = [0, thetas.shape[0]]
+        data_range = [0, Thetas.shape[0]]
     if not(max_time_lag):
         max_time_lag = (data_range[1]-data_range[0])//30
     plt.rcParams["figure.figsize"] = figsize
     with plt.style.context("ggplot"):
         for i in plot_nth_theta:
-            theta_i = thetas[data_range[0]: data_range[1], i]
+            theta_i = Thetas[data_range[0]: data_range[1], i]
             m = theta_i.shape[0] # the data size of the plotted dataset
-            acf = np.asarray([auto_correlation(thetas=theta_i, time_lag=t)[0] for t in range(0, max_time_lag-1)])
+            acf = np.asarray([auto_correlation(Thetas=theta_i, time_lag=t)[0] for t in range(0, max_time_lag-1)])
             plt.plot(np.asarray(range(0, max_time_lag-1)), acf, label=f"The auto-correlation value of {theta_index[i]}")
             if not(plot_together):
                 plt.legend()
@@ -115,7 +114,7 @@ def auto_corr_plot(thetas, plot_nth_theta, theta_index, max_time_lag=None, data_
             plt.ylabel("Auto-Correlation Value")
             plt.show()
 
-def targetDis_step_plot(thetas, rho: Callable, target_type: str, return_maximum=False, return_minimum=False, figsize=(6,8)):
+def targetDis_step_plot(Thetas, rho: Callable, target_type: str, return_maximum=False, return_minimum=False, figsize=(6,8)):
 
     """
     
@@ -136,9 +135,9 @@ def targetDis_step_plot(thetas, rho: Callable, target_type: str, return_maximum=
 
     """
 
-    datasize = len(thetas)
+    datasize = len(Thetas)
     steps = list(range(datasize))
-    target_vals = [rho(theta) for theta in thetas]
+    target_vals = [rho(theta) for theta in Thetas]
     if return_maximum:
         max_step = np.argmax(target_vals)
     if return_minimum:
