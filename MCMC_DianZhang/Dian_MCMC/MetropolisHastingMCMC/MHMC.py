@@ -1,5 +1,6 @@
 from typing import Callable
 import numpy as np
+import time
 
 class MHMC:  
     def __init__(
@@ -40,7 +41,8 @@ class MHMC:
         qProb: Callable,
         qSamp: Callable,
         steps: int,
-        OutputAcceptanceRate = True
+        OutputAcceptanceRate = True,
+        OutputRunTime = 0
     ):
 
         """
@@ -62,29 +64,37 @@ class MHMC:
 
         """
 
-        self.theta_n = theta0
+        theta_0 = np.asarray(theta0)
+        if OutputRunTime>=steps:
+            OutputRunTime = steps
         if OutputAcceptanceRate:
-            self.acceptanceRate = 0
-        self.Theta = []
-        for _ in range(0, steps):
-            self.Theta.append(list(self.theta_n))
+            acceptanceRate = 0
+        if OutputRunTime:
+            RunTime = []
+            start_time = time.perf_counter()
+        Thetas = np.array([theta_0])
+        for s in range(0, steps):
             # Updating the parameter from the proposal disribution
-            self.theta_nPlus1 = qSamp(self.theta_n)
+            theta_1 = qSamp(theta_0)
             if self.log_likelihood:
-                self.alpha = min(1, np.exp(self.rho(self.theta_nPlus1) + np.log(qProb(self.theta_nPlus1,self.theta_n)) - (self.rho(self.theta_n) + np.log(qProb(self.theta_n,self.theta_nPlus1)))))
+                alpha = min(1, np.exp(self.rho(theta_1) + (qProb(theta_1, theta_0)) - (self.rho(theta_0) + (qProb(theta_0, theta_1)))))
             else:
-                self.alpha = min(1, (self.rho(self.theta_nPlus1)*qProb(self.theta_nPlus1,self.theta_n))/(self.rho(self.theta_n)*qProb(self.theta_n,self.theta_nPlus1)))
+                alpha = min(1, (self.rho(theta_1)*qProb(theta_1, theta_0))/(self.rho(theta_0)*qProb(theta_0, theta_1)))
 
             # Deciding whether to reject the update of the parameter
-            self.u = np.random.default_rng().uniform(0, 1, 1)[0]
-            if(self.alpha>=self.u):
-                self.theta_n = self.theta_nPlus1
+            u = np.random.default_rng().uniform(0, 1, 1)[0]
+            if(alpha>=u):
+                theta_0 = theta_1
                 if OutputAcceptanceRate:
-                    self.acceptanceRate += 1
-            else:
-                pass
-        self.Theta.append(list(self.theta_n))
+                    acceptanceRate += 1
+            if OutputRunTime:
+                if (s%OutputRunTime)==0:
+                    RunTime.append(time.perf_counter() - start_time)
+            Thetas = np.append(Thetas, np.array([theta_0]), axis=0)
+        Res = {}
+        Res["Thetas"] = Thetas
         if OutputAcceptanceRate:
-            return self.Theta, (self.acceptanceRate/steps)
-        else:
-            return self.Theta
+            Res["Acceptance_Rate"] = acceptanceRate/steps
+        if OutputRunTime:
+            Res["Run_Times"]  = RunTime
+        return Res
