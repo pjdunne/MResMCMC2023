@@ -208,9 +208,9 @@ def densities_plot(Thetas, plot_axis, bins, cr_1D=0, mark_highest_density=False,
                             patches[max_pos_idx].set_facecolor("steelblue")
 
                 else:
-                    hist = axes[i, j].hist2d(Thetas[:, plot_axis[i]], Thetas[:, plot_axis[j]], bins=bins, cmap=cmap)
-                    axes[i, j].set_xlabel(f"$x_{plot_axis[i]}$")
-                    axes[i, j].set_ylabel(f"$x_{plot_axis[j]}$")
+                    hist = axes[i, j].hist2d(Thetas[:, plot_axis[j]], Thetas[:, plot_axis[i]], bins=bins, cmap=cmap)
+                    axes[i, j].set_xlabel(f"$x_{plot_axis[j]}$")
+                    axes[i, j].set_ylabel(f"$x_{plot_axis[i]}$")
                     fig.delaxes(axes[j, i])
 
         # Add colorbar to the whole plot
