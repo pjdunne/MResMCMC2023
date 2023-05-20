@@ -315,3 +315,29 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
                 ),
         )
     fig.show()
+
+
+def Likelihood_Function_Visualization_3D(X_range: List, Y_range: List, Likeli_Func: Callable, Func_name: str):
+    # Define thei grid 
+    X_val = np.linspace(X_range[0], X_range[1], 100)
+    Y_val = np.linspace(Y_range[0], Y_range[1], 100)
+    X_grid, Y_grid = np.meshgrid(X_val, Y_val)
+
+    # Compute the values of the z-axis
+    Z_grid = Likeli_Func(np.column_stack((X_grid.flatten(), Y_grid.flatten())))
+    Z_grid = Z_grid.reshape(X_grid.shape)
+
+    # Create the surface plot
+    fig = go.Figure(data = [go.Surface(x=X_grid, y=Y_grid, z=Z_grid)])
+
+    # Set the plot title and axis labels
+    fig.update_layout(
+        title = Func_name,
+        scene = dict(
+            xaxis_title = "X",
+            yaxis_title = "Y",
+            zaxis_title = "f(X, Y)",
+        )
+    )
+
+    fig.show()
