@@ -41,6 +41,7 @@ class MHMC:
         qProb: Callable,
         qSamp: Callable,
         steps: int,
+        MaxTime = 0,
         OutputAcceptanceRate = True,
         OutputRunTime = 0
     ):
@@ -55,7 +56,9 @@ class MHMC:
         qProb (Callable): probability of the proposal distribution of the parameter
         qSamp (Callable): draw the sample with the proposal distribution
         steps (int): run the MCMC for n steps
+        MaxTime (int): the max time taken by the algorithm
         OutputAcceptanceRate (bool): deciding whether to output the acceptance rate of the Metropolis-Hasting Algorithm
+        OutputRunTime (int): the Run time taken to finish n*OutputRunTime steps
 
         Returns
         -------
@@ -72,7 +75,7 @@ class MHMC:
         if OutputRunTime:
             RunTime = []
             start_time = time.perf_counter()
-        Thetas = np.array([theta_0])
+        Thetas = np.array([theta_0], dtype=np.float64)
         for s in range(0, steps):
             # Updating the parameter from the proposal disribution
             theta_1 = qSamp(theta_0)
@@ -87,10 +90,14 @@ class MHMC:
                 theta_0 = theta_1
                 if OutputAcceptanceRate:
                     acceptanceRate += 1
+            Thetas = np.append(Thetas, np.array([theta_0]), axis=0)
             if OutputRunTime:
                 if (s%OutputRunTime)==0:
                     RunTime.append(time.perf_counter() - start_time)
-            Thetas = np.append(Thetas, np.array([theta_0]), axis=0)
+            if MaxTime:
+                if ((time.perf_counter()-start_time)>MaxTime):
+                    steps = s+1
+                    break
         Res = {}
         Res["Thetas"] = Thetas
         if OutputAcceptanceRate:

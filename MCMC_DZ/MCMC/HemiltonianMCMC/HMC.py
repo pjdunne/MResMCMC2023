@@ -145,12 +145,12 @@ class HMC:
             # At start and end of trajectory, evaluate potential and kinetic energies
             self.U0 = self.U(self.theta0)
             self.K0 = 0
-            for self.pValue in self.p_n:
+            for self.pValue in self.p0:
                 self.K0 += self.pValue**2
             self.K0 /= 2
             self.U1 = self.U(self.theta1)
             self.K1= 0
-            for self.pValue in self.p_nPlus1:
+            for self.pValue in self.p1:
                 self.K1 += self.pValue**2
             self.K1 /= 2
             # At end of trajectory deciding whether accept or reject the state , returning either the position at the end of the trajectory or the initial position
