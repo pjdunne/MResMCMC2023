@@ -230,7 +230,7 @@ def densities_plot(Thetas, plot_axis, bins, burn_in, cr_1D=0, mark_highest_densi
 
 import plotly.graph_objects as go
 
-def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", burn_in=0, credible_region=95, figsize=(800, 800)):
+def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", burn_in=0, credible_region=95, figsize=(800, 800), alpha=1):
     """
     Plot an interactive 3D heatmap of a pair of dimensions from the input data.
 
@@ -280,7 +280,7 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
             cr_mask[max_x, max_y] = 1
         del posts
         # ploting the density plot of the inputed data
-        fig = go.Figure(data=[go.Surface(x=X, y=Y, z=hist.T, surfacecolor=cr_mask.T, colorscale="Viridis")])
+        fig = go.Figure(data=[go.Surface(x=X, y=Y, z=hist.T, surfacecolor=cr_mask.T, colorscale="Viridis", opacity=alpha)])
         # create 3D heatmap with the data prepared above
         fig.update_layout(
             title=f"3D density plot of {x_name} and {y_name} with credible region {credible_region}",
@@ -298,7 +298,7 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
         )
     else:
         # ploting the density plot of the inputed data
-        fig = go.Figure(data=[go.Surface(x=X, y=Y, z=hist.T , colorscale="Viridis")])
+        fig = go.Figure(data=[go.Surface(x=X, y=Y, z=hist.T , colorscale="Viridis", opacity=alpha)])
         # create 3D heatmap with the data prepared above
         fig.update_layout(
             title=f"3D density plot of {x_name} and {y_name}",
@@ -317,27 +317,63 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
     fig.show()
 
 
-def Likelihood_Function_Visualization_3D(X_range: List, Y_range: List, Likeli_Func: Callable, Func_name: str):
+def Target_Distribution_Visualization_3D(X_range: List, Y_range: List, Tar_Dis: Callable, Func_name: str, alpha=1, Single_vision=False):
+
+    """
+
+    Plotting the 3D plot of the Target Distribution of the MCMC algorithm
+
+    Arguments
+    ---------
+    X_range (List[float]): the range of the x axis of the plot
+    Y_range (List[float]): the range of the y axis of the plot
+    Tar_Dis (Callable): the target distritbution to visualize
+    Func_name (string): the name of the function to be visualized
+    alpha (float): the alpha transparency of the plot
+    Single_vision (bool): deciding whether to plot interactable plot
+
+    Returns
+    -------
+    None
+    
+    """
+
     # Define thei grid 
     X_val = np.linspace(X_range[0], X_range[1], 100)
     Y_val = np.linspace(Y_range[0], Y_range[1], 100)
     X_grid, Y_grid = np.meshgrid(X_val, Y_val)
 
     # Compute the values of the z-axis
-    Z_grid = Likeli_Func(np.column_stack((X_grid.flatten(), Y_grid.flatten())))
+    Z_grid = Tar_Dis(np.column_stack((X_grid.flatten(), Y_grid.flatten())))
     Z_grid = Z_grid.reshape(X_grid.shape)
 
-    # Create the surface plot
-    fig = go.Figure(data = [go.Surface(x=X_grid, y=Y_grid, z=Z_grid)])
+    if Single_vision:
+        # Creat the surface plot
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(x=X_grid, y=Y_grid, z=Z_grid, cmap='virdis')
+        fig.colorbar(ax.plot_surface(x=X_grid, y=Y_grid, z=Z_grid, cmap='virdis'))
 
-    # Set the plot title and axis labels
-    fig.update_layout(
-        title = Func_name,
-        scene = dict(
-            xaxis_title = "X",
-            yaxis_title = "Y",
-            zaxis_title = "f(X, Y)",
+        # Set the plot title and axis labels
+        ax.set_xlabel("X")
+        ax.set_yalebl("Y")
+        ax.set_zlabel("f(X, Y)")
+        ax.set_title(Func_name)
+        plt.tight_layout()
+        plt.show()
+    
+    else:
+        # Create the surface plot
+        fig = go.Figure(data = [go.Surface(x=X_grid, y=Y_grid, z=Z_grid, opacity=alpha)])
+
+        # Set the plot title and axis labels
+        fig.update_layout(
+            title = Func_name,
+            scene = dict(
+                xaxis_title = "X",
+                yaxis_title = "Y",
+                zaxis_title = "f(X, Y)",
+            )
         )
-    )
 
-    fig.show()
+        fig.show()
