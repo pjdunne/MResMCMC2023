@@ -317,7 +317,7 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
     fig.show()
 
 
-def Target_Distribution_Visualization_3D(X_range: List, Y_range: List, Tar_Dis: Callable, Func_name: str, alpha=1, Single_vision=False):
+def Target_Distribution_Visualization_3D(X_range: List, Y_range: List, Tar_Dis: object, Func_name: str, alpha=1, Single_vision=False):
 
     """
 
@@ -351,7 +351,7 @@ def Target_Distribution_Visualization_3D(X_range: List, Y_range: List, Tar_Dis: 
         # Creat the surface plot
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(111, projection='3d')
-        ax.plot_surface(x=X_grid, y=Y_grid, z=Z_grid, cmap='virdis')
+        ax.plot_surface(X_grid, Y_grid, Z_grid, cmap='virdis')
         fig.colorbar(ax.plot_surface(x=X_grid, y=Y_grid, z=Z_grid, cmap='virdis'))
 
         # Set the plot title and axis labels
