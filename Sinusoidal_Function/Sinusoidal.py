@@ -52,7 +52,7 @@ class Sinusoidal:
             X0_in_range = np.logical_and(X[0] >= self.X_range[0][0], X[0] <= self.X_range[0][1])
             X1_in_range = np.logical_and(X[1] >= self.X_range[1][0], X[1] <= self.X_range[1][1])
             if (X0_in_range & X1_in_range):
-                return (self.A[0] * np.cos(self.B[0] * X[1] + self.C[0]))
+                return (self.A[0] * np.cos(self.B[0] * X[0] + self.C[0]))
             else:
                 return 0
         else:
@@ -60,5 +60,5 @@ class Sinusoidal:
             X1_in_range = np.logical_and(X[:, 1] >= self.X_range[1][0], X[:, 1] <= self.X_range[1][1])
             in_range = np.logical_and(X0_in_range, X1_in_range)
             Res = np.zeros(X.shape[0])
-            Res[in_range] = (self.A[0] * np.cos(self.B[0] * X[1] + self.C[0]))
+            Res[in_range] = (self.A[0] * np.cos(self.B[0] * X[in_range, 0] + self.C[0]))
             return Res
