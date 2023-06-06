@@ -1,36 +1,14 @@
-#!/usr/bin/env python
-# coding: utf-8
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jun  1 11:36:55 2023
 
-# In[1]:
+@author: firework
+"""
 
-
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-
-# https://www.sfu.ca/~ssurjano/egg.html
-# 
-# 
-# f(x,y) = -(y + 47) * sin(sqrt(abs(y + x/2 + 47))) - x * sin(sqrt(abs(x - (y + 47))))
-# 
-# 
-# The Eggholder function is a difficult function to optimize, because of the large number of local minima. 
-# 
-# Input Domain: xi ∈ [-512, 512], for all i = 1, 2. 
-# 
-# Global minimum: (x, y) = (512, 404.2319), and its corresponding function value f(x,y) = -959.6407.
-# 
-# It's worth noting that the Eggholder function has a symmetric property, meaning that the global minimum can also be found at (-512, 404.2319), (512, -404.2319), or (-512, -404.2319), with the same function value of -959.6407.
-# 
-# For simplicity for MCMC group, we decided to shift the whole function up by 1000 to avoid negative values.
-
-# In[2]:
-
-
-class EggholderLikelihood:
+class TableHolder:
     '''
-    This class represents the likelihood function based on the Eggholder function
+    This class represents the likelihood function based on the TableHolder function
     
     '''
     def __init__(self):
@@ -38,34 +16,34 @@ class EggholderLikelihood:
         Initialize the class with bounds for the x and y variables
         '''
         # Bounds for x and y variables
-        self.bounds = [(-512, 512), (-512, 512)]  # The function is usually evaluated on the square xi ∈ [-512, 512], for all i = 1, 2
-
-    def eggholder(self, x, y):
+        self.bounds = [(-10, 10), (-10, 10)]
+        
+    def TableHolder(self, x, y):
         '''
-        Evaluates the Eggholder function at the given (x, y) coordinates
+        Evaluates the TableHolder function at the given (x, y) coordinates
 
         Arguments
         x [float]: The x coordinate
         y [float]: The y coordinate
 
         Returns
-        fxy [float]: The value of the Egg Holder function at (x, y)
+        fxy [float]: The value of the TableHolder function at (x, y)
         '''
-        fxy = -(y + 47) * np.sin(np.sqrt(abs(x/2 + (y + 47)))) - x * np.sin(np.sqrt(abs(x - (y + 47))))+1000
+        fxy = -abs(np.sin(x) * np.cos(y) * np.exp(abs(1 - np.sqrt(x**2 + y**2) / np.pi)))
         return fxy
     
     def evaluate(self, params):
         '''
-        Evaluates the Eggholder function at the given (x, y) coordinates
+        Evaluates the TableHolder function at the given (x, y) coordinates
 
         Arguments
-        params [tuple]: The parameter values (x, y) for the Eggholder function
+        params [tuple]: The parameter values (x, y) for the TableHolder function
 
         Returns
-        fxy [float]: The value of the Egg Holder function at (x, y)
+        fxy [float]: The value of the TableHolder function at (x, y)
         '''
         x, y = params
-        fxy = self.eggholder(x, y)
+        fxy = self.TableHolder(x, y)
         return fxy
 
 
@@ -74,8 +52,8 @@ class EggholderLikelihood:
         Calculates the log likelihood value based on the observed and predicted values
 
         Arguments
-        params [tuple]: The parameter values (x, y) for the Eggholder function
-        z_observed [array]: The observed values of the Eggholder function
+        params [tuple]: The parameter values (x, y) for the TableHolder function
+        z_observed [array]: The observed values of the TableHolder function
 
         Returns
         log_likelihood [float]: The log-likelihood value
@@ -90,7 +68,7 @@ class EggholderLikelihood:
         Calculates the log prior probability based on the parameter values
 
         Arguments
-        params [tuple]: The parameter values (x, y) for the Eggholder function
+        params [tuple]: The parameter values (x, y) for the TableHolder function
 
         Returns
         log_prior [float]: The log-prior probability
@@ -106,8 +84,8 @@ class EggholderLikelihood:
         Calculates the log posterior probability based on the parameter values and observed values
 
         Arguments
-        params [tuple]: The parameter values (x, y) for the Eggholder function
-        z_observed [array-like]: The observed values of the Eggholder function
+        params [tuple]: The parameter values (x, y) for the TableHolder function
+        z_observed [array-like]: The observed values of the TableHolder function
 
         Returns:
         log_posterior [float]: The log-posterior probability
@@ -120,13 +98,13 @@ class EggholderLikelihood:
     
     def add_poisson_fluctuation(self, z):
         '''
-        Adds Poisson fluctuation to the Eggolder function values
+        Adds Poisson fluctuation to the TableHolder values
 
         Arguments
-        z [array]: The values of the Eggholder function
+        z [array]: The values of the TableHolder function
 
         Returns
-        z_fluctuated [array]: The fluctuated values of the Eggholder function
+        z_fluctuated [array]: The fluctuated values of the TableHolder function
         '''
         offset = np.abs(np.min(z))
         z_offset = z + offset
@@ -136,18 +114,18 @@ class EggholderLikelihood:
 
     def plot_scatter(self):
         '''
-        Creates a 3D scatter plot of the Eggholder function with Poisson fluctuation
+        Creates a 3D scatter plot of the TableHolder function with Poisson fluctuation
         '''
         
         # Create an array of x and y values
-        x = np.linspace(-512, 512, 400)
-        y = np.linspace(-512, 512, 400)
+        x = np.linspace(-10, 10, 400)
+        y = np.linspace(-10, 10, 400)
 
         # Create a grid of x and y values
         x, y = np.meshgrid(x, y)
 
         # Calculate the z values
-        z = self.eggholder(x, y)
+        z = self.TableHolder(x, y)
 
         # Add Poisson fluctuation to z values
         z_fluctuated = self.add_poisson_fluctuation(z)
@@ -155,17 +133,44 @@ class EggholderLikelihood:
         # Create the plot
         fig = plt.figure(figsize=(15, 10))
         ax = fig.add_subplot(111, projection='3d')
+        #ax.plot_surface(x, y, z, cmap='viridis', edgecolor='k')
+        #ax.set_title('3D Plot of Table Holder Function without Poisson Fluctuation')
         ax.plot_surface(x, y, z_fluctuated, cmap='viridis', edgecolor='k')
-        ax.set_title('3D Plot of Eggholder Function with Poisson Fluctuation')
+        ax.set_title('3D Plot of Table Holder Function with Poisson Fluctuation')
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('f(x, y)')
-        plt.savefig('3D Eggholder Function with Poisson Fluctuation')
+        plt.savefig('3D Table Holder Function with Poisson Fluctuation')
         plt.show()
+        
+    def plot_heatmap(self):
+        '''
+        Creates a 2D heatmap of the TableHolder function with Poisson fluctuation
+        '''
+        x = np.linspace(-10, 10, 400)
+        y = np.linspace(-10, 10, 400)
+        X, Y = np.meshgrid(x, y)
+        z = self.TableHolder(X, Y)
+
+        # Add Poisson fluctuation to z values
+        z_fluctuated = self.add_poisson_fluctuation(z)
+
+        # Create the plot
+        plt.figure(figsize=(10, 8))
+        #plt.imshow(z, cmap='viridis', extent=[-10, 10, -10, 10], origin='lower')
+        plt.imshow(z_fluctuated, cmap='viridis', extent=[-10, 10, -10, 10], origin='lower')
+        plt.colorbar(label='f(x, y)')
+        plt.xlabel('x')
+        plt.ylabel('y')
+        #plt.title('2D Heatmap of TableHolder Function without Poisson Fluctuation')
+        plt.title('2D Heatmap of Table Holder Function with Poisson Fluctuation')
+        plt.savefig('TableHolder_heatmap')
+        plt.show()
+        
         
     def find_peaks(self, num_points=100):
         '''
-        Finds the number of peaks in the Eggholder function
+        Finds the number of peaks in the TableHolder function
 
         Arguments
         num_points [int]: The number of points to evaluate the function
@@ -174,10 +179,10 @@ class EggholderLikelihood:
         peaks [int]: The number of peaks in the function
         peak_coordinates [list]: The coordinates of the peaks in the function
         '''
-        x = np.linspace(-512, 512, num_points)
-        y = np.linspace(-512, 512, num_points)
+        x = np.linspace(-10, 10, num_points)
+        y = np.linspace(-10, 10, num_points)
         X, Y = np.meshgrid(x, y)
-        z = self.eggholder(X, Y)
+        z = self.TableHolder(X, Y)
 
         peaks = 0
         peak_coordinates = []
@@ -188,11 +193,12 @@ class EggholderLikelihood:
                 z[i, j] > z[i, j-1] and z[i, j] > z[i, j+1]
             ):
                     peaks += 1
+                    peak_coordinates.append((X[i, j], Y[i, j]))
         return peaks, peak_coordinates
 
     def find_troughs(self, num_points=100):
         '''
-        Finds the number of troughs in the Eggholder function
+        Finds the number of troughs in the TableHolder function
 
         Arguments
         num_points [int]: The number of points to evaluate the function
@@ -201,10 +207,10 @@ class EggholderLikelihood:
         troughs [int]: The number of troughs in the function
         trough_coordinates [list]: The coordinates of the troughs in the function
         '''
-        x = np.linspace(-512, 512, num_points)
-        y = np.linspace(-512, 512, num_points)
+        x = np.linspace(-10, 10, num_points)
+        y = np.linspace(-10, 10, num_points)
         X, Y = np.meshgrid(x, y)
-        z = self.eggholder(X, Y)
+        z = self.TableHolder(X, Y)
 
         troughs = 0
         trough_coordinates = []
@@ -221,9 +227,8 @@ class EggholderLikelihood:
         return troughs, trough_coordinates
 
     
-    def find_local_minimum(self, start_point, learning_rate=0.01, num_iterations=100):
         '''
-        Finds a local minimum of the Eggholder function starting from the given start_point
+        Finds a local minimum of the TableHolderdouble well potential function starting from the given start_point
 
         Arguments
         start_point [tuple]: The starting point (x, y) for the optimization
@@ -240,17 +245,10 @@ class EggholderLikelihood:
 
         for _ in range(num_iterations):
             x, y = current_point
-            grad_x = -(y + 47) * np.sin(np.sqrt(abs(x/2 + (y + 47)))) - x * np.sin(np.sqrt(abs(x - (y + 47)))) * (1/2) * (1/np.sqrt(abs(x - (y + 47)))) * np.sign(x - (y + 47))
-            grad_y = -(y + 47) * np.sin(np.sqrt(abs(x/2 + (y + 47)))) - (1/2) * np.sin(np.sqrt(abs(x - (y + 47)))) * (1/np.sqrt(abs(x/2 + (y + 47)))) * np.sign(y + 47) - x * np.sin(np.sqrt(abs(x - (y + 47))))
+            grad_x = 4*a*x**3 - 2*b*x
+            grad_y = 0
             gradient = np.array([grad_x, grad_y])
             current_point = current_point - learning_rate * gradient
             history.append(current_point)
 
         return current_point, history
-
-
-# In[ ]:
-
-
-
-
