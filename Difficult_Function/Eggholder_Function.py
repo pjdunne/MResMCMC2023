@@ -65,6 +65,8 @@ class EggholderLikelihood:
         fxy [float]: The value of the Egg Holder function at (x, y)
         '''
         x, y = params
+        if (x<self.bounds[0][0] or x>self.bounds[0][1] or y<self.bounds[1][0] or y>self.bounds[1][1]):
+            return 0
         fxy = self.eggholder(x, y)
         return fxy
 
