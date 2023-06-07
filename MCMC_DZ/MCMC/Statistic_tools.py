@@ -230,7 +230,7 @@ def densities_plot(Thetas, plot_axis, bins, burn_in, cr_1D=0, mark_highest_densi
 
 import plotly.graph_objects as go
 
-def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", burn_in=0, credible_region=95, figsize=(800, 800), alpha=1):
+def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", burn_in=0, credible_region=0.95, figsize=(800, 800), alpha=1, label="", Single_vision=False, Save_fig=False, fig_name="3D density plot"):
     """
     Plot an interactive 3D heatmap of a pair of dimensions from the input data.
 
@@ -244,6 +244,9 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
     burn_in (int): the number of the data points want to "burn_in" for the graph
     credible_region (float): the size of the credible region in percent
     figsize (tuple): the size of the figure
+    label (string): the label want to add to the plot
+    Save_fig (bool): decide whether to save the output figure of the function
+    fig_name (string): the saved figure name
 
     Returns:
     None
@@ -256,65 +259,122 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
     ymid = 0.5*(yedges[1:] + yedges[:-1])
     X, Y = np.meshgrid(xmid, ymid)
 
-    if (credible_region):
-        datasize = Thetas.shape[0]
-        credible_value = credible_region*datasize-burn_in
-        # create mask for credible region
-        cr_mask = np.zeros_like(hist)
-        posts_prob = 0
-        posts = hist.copy()
-        max_pos_idx = np.argmax(posts)
-        max_x = int(max_pos_idx//bins)
-        max_y = int(max_pos_idx%bins)
-        posts_prob += posts[max_x, max_y]
-        posts[max_x, max_y] = -1
-        cr_mask[max_x, max_y] = 1
-        max_hist = hist[max_x, max_y]
-        # marking the bins inside the credible region
-        while(posts_prob<credible_value):
+    if Single_vision:
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot(111, projection='3d')
+
+        if (credible_region):
+            datasize = Thetas.shape[0]
+            credible_value = credible_region*datasize-burn_in
+            # create mask for credible region
+            cr_mask = np.zeros_like(hist)
+            posts_prob = 0
+            posts = hist.copy()
             max_pos_idx = np.argmax(posts)
             max_x = int(max_pos_idx//bins)
             max_y = int(max_pos_idx%bins)
             posts_prob += posts[max_x, max_y]
             posts[max_x, max_y] = -1
             cr_mask[max_x, max_y] = 1
-        del posts
-        # ploting the density plot of the inputed data
-        fig = go.Figure(data=[go.Surface(x=X, y=Y, z=hist.T, surfacecolor=cr_mask.T, colorscale="Viridis", opacity=alpha)])
-        # create 3D heatmap with the data prepared above
-        fig.update_layout(
-            title=f"3D density plot of {x_name} and {y_name} with credible region {credible_region}",
-            autosize=False,
-            width=figsize[0],
-            height=figsize[1],
-            scene=dict(
-                xaxis_title=x_name,
-                yaxis_title=y_name,
-                zaxis_title="counts",
-                aspectratio=dict(x=1, y=1, z=0.7),
-                camera_eye=dict(x=-1.7, y=-1.7, z=0.5),
-                dragmode="orbit",
-                ),
-        )
+            max_hist = hist[max_x, max_y]
+            # marking the bins inside the credible region
+            while(posts_prob<credible_value):
+                max_pos_idx = np.argmax(posts)
+                max_x = int(max_pos_idx//bins)
+                max_y = int(max_pos_idx%bins)
+                posts_prob += posts[max_x, max_y]
+                posts[max_x, max_y] = -1
+                cr_mask[max_x, max_y] = 1
+            del posts
+            # plot the density plot of the inputted data
+            ax.plot_surface(X, Y, hist.T, facecolors=plt.cm.viridis(cr_mask.T), alpha=alpha)
+            fig.colorbar(ax.plot_surface(X, Y, hist.T, facecolors=plt.cm.viridis(cr_mask.T)))
+            # create 3D heatmap with the data prepared above
+            ax.set_title(f"3D density plot of {x_name} and {y_name} with credible region {credible_region}"+label)
+        else:
+            # plot the density
+            # plot the density plot of the inputted data
+            ax.plot_surface(X, Y, hist.T, cmap='viridis', alpha=alpha)
+            # # Add contour plots
+            # cset = ax.contour(X, Y, hist.T, zdir='z', offset=np.min(hist), cmap=plt.cm.coolwarm)
+            # cset = ax.contour(X, Y, hist.T, zdir='x', offset=np.min(xedges), cmap=plt.cm.coolwarm)
+            # cset = ax.contour(X, Y, hist.T, zdir='y', offset=np.max(yedges), cmap=plt.cm.coolwarm)
+
+            fig.colorbar(ax.plot_surface(X, Y, hist.T, cmap='viridis'))
+            # create 3D heatmap with the data prepared above
+            ax.set_title(f"3D density plot of {x_name} and {y_name}"+label)
+
+        ax.set_xlabel(x_name)
+        ax.set_ylabel(y_name)
+        ax.set_zlabel("Counts")
+        ax.set_box_aspect([1, 1, 0.7])
+        # ax.view_init(elev=-1.7, azim=-1.7)
+        ax.dist = 10
+
+        plt.tight_layout()
+        if (Save_fig): 
+            plt.savefig(fig_name+".png")
+        plt.show()
     else:
-        # ploting the density plot of the inputed data
-        fig = go.Figure(data=[go.Surface(x=X, y=Y, z=hist.T , colorscale="Viridis", opacity=alpha)])
-        # create 3D heatmap with the data prepared above
-        fig.update_layout(
-            title=f"3D density plot of {x_name} and {y_name}",
-            autosize=False,
-            width=figsize[0],
-            height=figsize[1],
-            scene=dict(
-                xaxis_title=x_name,
-                yaxis_title=y_name,
-                zaxis_title="counts",
-                aspectratio=dict(x=1, y=1, z=0.7),
-                camera_eye=dict(x=-1.7, y=-1.7, z=0.5),
-                dragmode="orbit",
-                ),
-        )
-    fig.show()
+        if (credible_region):
+            datasize = Thetas.shape[0]
+            credible_value = credible_region*datasize-burn_in
+            # create mask for credible region
+            cr_mask = np.zeros_like(hist)
+            posts_prob = 0
+            posts = hist.copy()
+            max_pos_idx = np.argmax(posts)
+            max_x = int(max_pos_idx//bins)
+            max_y = int(max_pos_idx%bins)
+            posts_prob += posts[max_x, max_y]
+            posts[max_x, max_y] = -1
+            cr_mask[max_x, max_y] = 1
+            max_hist = hist[max_x, max_y]
+            # marking the bins inside the credible region
+            while(posts_prob<credible_value):
+                max_pos_idx = np.argmax(posts)
+                max_x = int(max_pos_idx//bins)
+                max_y = int(max_pos_idx%bins)
+                posts_prob += posts[max_x, max_y]
+                posts[max_x, max_y] = -1
+                cr_mask[max_x, max_y] = 1
+            del posts
+            # ploting the density plot of the inputed data
+            fig = go.Figure(data=[go.Surface(x=X, y=Y, z=hist.T, surfacecolor=cr_mask.T, colorscale="Viridis", opacity=alpha)])
+            # create 3D heatmap with the data prepared above
+            fig.update_layout(
+                title=f"3D density plot of {x_name} and {y_name} with credible region {credible_region}"+label,
+                autosize=False,
+                width=figsize[0],
+                height=figsize[1],
+                scene=dict(
+                    xaxis_title=x_name,
+                    yaxis_title=y_name,
+                    zaxis_title="counts",
+                    aspectratio=dict(x=1, y=1, z=0.7),
+                    camera_eye=dict(x=-1.7, y=-1.7, z=0.5),
+                    dragmode="orbit",
+                    ),
+            )
+        else:
+            # ploting the density plot of the inputed data
+            fig = go.Figure(data=[go.Surface(x=X, y=Y, z=hist.T , colorscale="viridis", opacity=alpha)])
+            # create 3D heatmap with the data prepared above
+            fig.update_layout(
+                title=f"3D density plot of {x_name} and {y_name}"+label,
+                autosize=False,
+                width=figsize[0],
+                height=figsize[1],
+                scene=dict(
+                    xaxis_title=x_name,
+                    yaxis_title=y_name,
+                    zaxis_title="counts",
+                    aspectratio=dict(x=1, y=1, z=0.7),
+                    camera_eye=dict(x=-1.7, y=-1.7, z=0.5),
+                    dragmode="orbit",
+                    ),
+            )
+        fig.show()
 
 
 def Target_Distribution_Visualization_3D(X_range: List, Y_range: List, Tar_Dis: object, Func_name: str, alpha=1, Single_vision=False):
@@ -351,12 +411,12 @@ def Target_Distribution_Visualization_3D(X_range: List, Y_range: List, Tar_Dis: 
         # Creat the surface plot
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(111, projection='3d')
-        ax.plot_surface(X_grid, Y_grid, Z_grid, cmap='virdis')
-        fig.colorbar(ax.plot_surface(x=X_grid, y=Y_grid, z=Z_grid, cmap='virdis'))
+        ax.plot_surface(X_grid, Y_grid, Z_grid, cmap='viridis', alpha=alpha)
+        fig.colorbar(ax.plot_surface(X_grid, Y_grid, Z_grid, cmap='viridis'))
 
         # Set the plot title and axis labels
         ax.set_xlabel("X")
-        ax.set_yalebl("Y")
+        ax.set_ylabel("Y")
         ax.set_zlabel("f(X, Y)")
         ax.set_title(Func_name)
         plt.tight_layout()
@@ -364,10 +424,12 @@ def Target_Distribution_Visualization_3D(X_range: List, Y_range: List, Tar_Dis: 
     
     else:
         # Create the surface plot
-        fig = go.Figure(data = [go.Surface(x=X_grid, y=Y_grid, z=Z_grid, opacity=alpha)])
+        fig = go.Figure(data = [go.Surface(x=X_grid, y=Y_grid, z=Z_grid, colorscale="Viridis", opacity=alpha)])
 
         # Set the plot title and axis labels
         fig.update_layout(
+            width=800,
+            height=800,
             title = Func_name,
             scene = dict(
                 xaxis_title = "X",
