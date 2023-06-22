@@ -160,7 +160,7 @@ def targetDis_step_plot(Thetas, rho: Callable, target_type: str, burn_in: int, r
 from matplotlib.patches import Rectangle
 
 
-def densities_plot(Thetas, plot_axis, bins, burn_in, cr_1D=0, mark_highest_density=False, figsize=(10, 9), cmap='viridis'):
+def density_plots(Thetas, plot_axis, bins, burn_in, axis_name=[], cr_1D=0, mark_highest_density=False, figsize=(10, 9), cmap='viridis'):
     """
     Plot the density of each axis and the heat map of each pair of axis    
 
@@ -192,7 +192,10 @@ def densities_plot(Thetas, plot_axis, bins, burn_in, cr_1D=0, mark_highest_densi
             for j in range(0, i+1):
                 if i==j:
                     cs, bs, patches = axes[i, j].hist(Thetas[burn_in:, plot_axis[i]], bins=bins)
-                    axes[i, j].set_xlabel(f"$x_{plot_axis[i]}$")
+                    if axis_name:
+                        axes[i, j].set_xlabel(axis_name[i])
+                    else:
+                        axes[i, j].set_xlabel(f"$x_{plot_axis[i]}$")
                     axes[i, j].set_ylabel("Counts")
                     max_count_idx = np.argmax(cs)
                     bin_center = (bs[max_count_idx] + bs[max_count_idx+1]) / 2
@@ -213,8 +216,12 @@ def densities_plot(Thetas, plot_axis, bins, burn_in, cr_1D=0, mark_highest_densi
 
                 else:
                     hist = axes[i, j].hist2d(Thetas[burn_in:, plot_axis[j]], Thetas[burn_in:, plot_axis[i]], bins=bins, cmap=cmap)
-                    axes[i, j].set_xlabel(f"$x_{plot_axis[j]}$")
-                    axes[i, j].set_ylabel(f"$x_{plot_axis[i]}$")
+                    if axis_name:
+                        axes[i, j].set_xlabel(axis_name[j])
+                        axes[i, j].set_ylabel(axis_name[i])
+                    else:
+                        axes[i, j].set_xlabel(f"$x_{plot_axis[j]}$")
+                        axes[i, j].set_ylabel(f"$x_{plot_axis[i]}$")
                     fig.delaxes(axes[j, i])
 
         # Add colorbar to the whole plot
@@ -230,7 +237,7 @@ def densities_plot(Thetas, plot_axis, bins, burn_in, cr_1D=0, mark_highest_densi
 
 import plotly.graph_objects as go
 
-def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", burn_in=0, credible_region=0.95, figsize=(800, 800), alpha=1, label="", Single_vision=False, Save_fig=False, fig_name="3D density plot"):
+def density_plot(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", burn_in=0, credible_region=0.95, figsize=(800, 800), alpha=1, label="", Save_fig=False, fig_name="3D density plot", Plot3D=False, Interact3D=False):
     """
     Plot an interactive 3D heatmap of a pair of dimensions from the input data.
 
@@ -255,11 +262,12 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
 
     # prepare the data for the 2D histogram
     hist, xedges, yedges = np.histogram2d(Thetas[burn_in:, x_axis], Thetas[burn_in:, y_axis], bins=bins)
+    hist = hist.T
     xmid = 0.5*(xedges[1:] + xedges[:-1])
     ymid = 0.5*(yedges[1:] + yedges[:-1])
     X, Y = np.meshgrid(xmid, ymid)
 
-    if Single_vision:
+    if Plot3D:
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(111, projection='3d')
 
@@ -287,26 +295,32 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
                 cr_mask[max_x, max_y] = 1
             del posts
             # plot the density plot of the inputted data
-            ax.plot_surface(X, Y, hist.T, facecolors=plt.cm.viridis(cr_mask.T), alpha=alpha)
-            fig.colorbar(ax.plot_surface(X, Y, hist.T, facecolors=plt.cm.viridis(cr_mask.T)))
+            ax.plot_surface(X, Y, hist, facecolors=plt.cm.viridis(cr_mask.T), alpha=alpha)
+            fig.colorbar(ax.plot_surface(X, Y, hist, facecolors=plt.cm.viridis(cr_mask.T)))
             # create 3D heatmap with the data prepared above
             ax.set_title(f"3D density plot of {x_name} and {y_name} with credible region {credible_region}"+label)
         else:
             # plot the density
             # plot the density plot of the inputted data
-            ax.plot_surface(X, Y, hist.T, cmap='viridis', alpha=alpha)
+            ax.plot_surface(X, Y, hist, cmap='viridis', alpha=alpha)
             # # Add contour plots
             # cset = ax.contour(X, Y, hist.T, zdir='z', offset=np.min(hist), cmap=plt.cm.coolwarm)
             # cset = ax.contour(X, Y, hist.T, zdir='x', offset=np.min(xedges), cmap=plt.cm.coolwarm)
             # cset = ax.contour(X, Y, hist.T, zdir='y', offset=np.max(yedges), cmap=plt.cm.coolwarm)
 
-            fig.colorbar(ax.plot_surface(X, Y, hist.T, cmap='viridis'))
+            fig.colorbar(ax.plot_surface(X, Y, hist, cmap='viridis'))
             # create 3D heatmap with the data prepared above
             ax.set_title(f"3D density plot of {x_name} and {y_name}"+label)
 
+        max_idx = np.argmax(hist)
+        X_max = X[max_idx//hist.shape[0], max_idx%hist.shape[0]]
+        Y_max = Y[max_idx//hist.shape[0], max_idx%hist.shape[0]]
+        hist_max = hist[max_idx//hist.shape[0], max_idx%hist.shape[0]]
+        ax.scatter(X_max, Y_max, hist_max, c="red", marker='o', linewidths=2, label=f"The Maximum density point ({x_name:.3f}, {y_name:.3f}) = ({X_max, Y_max})")
         ax.set_xlabel(x_name)
         ax.set_ylabel(y_name)
         ax.set_zlabel("Counts")
+        ax.legend()
         ax.set_box_aspect([1, 1, 0.7])
         # ax.view_init(elev=-1.7, azim=-1.7)
         ax.dist = 10
@@ -315,7 +329,7 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
         if (Save_fig): 
             plt.savefig(fig_name+".png")
         plt.show()
-    else:
+    elif Interact3D:
         if (credible_region):
             datasize = Thetas.shape[0]
             credible_value = credible_region*datasize-burn_in
@@ -340,7 +354,7 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
                 cr_mask[max_x, max_y] = 1
             del posts
             # ploting the density plot of the inputed data
-            fig = go.Figure(data=[go.Surface(x=X, y=Y, z=hist.T, surfacecolor=cr_mask.T, colorscale="Viridis", opacity=alpha)])
+            fig = go.Figure(data=[go.Surface(x=X, y=Y, z=hist, surfacecolor=cr_mask, colorscale="Viridis", opacity=alpha)])
             # create 3D heatmap with the data prepared above
             fig.update_layout(
                 title=f"3D density plot of {x_name} and {y_name} with credible region {credible_region}"+label,
@@ -358,7 +372,7 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
             )
         else:
             # ploting the density plot of the inputed data
-            fig = go.Figure(data=[go.Surface(x=X, y=Y, z=hist.T , colorscale="viridis", opacity=alpha)])
+            fig = go.Figure(data=[go.Surface(x=X, y=Y, z=hist , colorscale="viridis", opacity=alpha)])
             # create 3D heatmap with the data prepared above
             fig.update_layout(
                 title=f"3D density plot of {x_name} and {y_name}"+label,
@@ -375,9 +389,35 @@ def density_plot_3D(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", bu
                     ),
             )
         fig.show()
+    else:
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot(111)
+
+        # plot the density plot of the inputted data
+        ax.imshow(hist, cmap='viridis', origin='lower', alpha=alpha, extent=[X.min(), X.max(), Y.min(), Y.max()], aspect='auto')
+        fig.colorbar(ax.imshow(hist, cmap='viridis', origin='lower', alpha=alpha, extent=[X.min(), X.max(), Y.min(), Y.max()], aspect='auto'))
+
+        # create 3D heatmap with the data prepared above
+        ax.set_title(f"2D density plot of {x_name} and {y_name}"+label)
+
+        max_idx = np.argmax(hist)
+        X_max = X[max_idx//hist.shape[0], max_idx%hist.shape[0]]
+        Y_max = Y[max_idx//hist.shape[0], max_idx%hist.shape[0]]
+        ax.scatter(X_max, Y_max, c="red", marker='o', linewidths=2, label=f"The Maximum density point ({x_name:.3f}, {y_name:.3f}) = ({X_max, Y_max})")
+        ax.set_xlabel(x_name)
+        ax.set_ylabel(y_name)
+        ax.legend()
+        # ax.view_init(elev=-1.7, azim=-1.7)
+        ax.dist = 10
+
+        plt.tight_layout()
+        if (Save_fig): 
+            plt.savefig(fig_name+".png")
+        plt.show()
 
 
-def Target_Distribution_Visualization_3D(X_range: List, Y_range: List, Tar_Dis: object, Func_name: str, alpha=1, Single_vision=False):
+
+def Target_Distribution_Visualization(X_range: List, Y_range: List, Tar_Dis: object, Func_name: str, alpha=1, Plot3D=False, Interact3D=False):
 
     """
 
@@ -407,7 +447,7 @@ def Target_Distribution_Visualization_3D(X_range: List, Y_range: List, Tar_Dis: 
     Z_grid = Tar_Dis(np.column_stack((X_grid.flatten(), Y_grid.flatten())))
     Z_grid = Z_grid.reshape(X_grid.shape)
 
-    if Single_vision:
+    if Plot3D:
         # Creat the surface plot
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(111, projection='3d')
@@ -422,7 +462,7 @@ def Target_Distribution_Visualization_3D(X_range: List, Y_range: List, Tar_Dis: 
         plt.tight_layout()
         plt.show()
     
-    else:
+    elif Interact3D:
         # Create the surface plot
         fig = go.Figure(data = [go.Surface(x=X_grid, y=Y_grid, z=Z_grid, colorscale="Viridis", opacity=alpha)])
 
@@ -439,3 +479,17 @@ def Target_Distribution_Visualization_3D(X_range: List, Y_range: List, Tar_Dis: 
         )
 
         fig.show()
+    
+    else:
+        # Creat the 2D heatmap plot
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot(111)
+        ax.imshow(Z_grid, cmap='viridis', origin='lower', alpha=alpha, extent=[X_grid.min(), X_grid.max(), Y_grid.min(), Y_grid.max()], aspect="auto")
+        fig.colorbar(ax.imshow(Z_grid, cmap='viridis', origin='lower', alpha=alpha, extent=[X_grid.min(), X_grid.max(), Y_grid.min(), Y_grid.max()], aspect="auto"))
+
+        # Set the plot title and axis labels
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.set_title(Func_name)
+        plt.tight_layout()
+        plt.show()
