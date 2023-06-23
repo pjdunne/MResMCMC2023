@@ -79,10 +79,14 @@ class MHMC:
         for s in range(0, steps):
             # Updating the parameter from the proposal disribution
             theta_1 = qSamp(theta_0)
-            if self.log_likelihood:
-                alpha = min(1, np.exp(self.rho(theta_1) + (qProb(theta_1, theta_0)) - (self.rho(theta_0) + (qProb(theta_0, theta_1)))))
+            rho_theta_1 = self.rho(theta_1)
+            if (rho_theta_1):
+                if self.log_likelihood:
+                    alpha = min(1, np.exp(rho_theta_1)*np.exp(qProb(theta_1, theta_0))*np.exp(-self.rho(theta_0))*np.exp(-qProb(theta_0, theta_1)))
+                else:
+                    alpha = min(1, (rho_theta_1*qProb(theta_1, theta_0))/(self.rho(theta_0)*qProb(theta_0, theta_1)))
             else:
-                alpha = min(1, (self.rho(theta_1)*qProb(theta_1, theta_0))/(self.rho(theta_0)*qProb(theta_0, theta_1)))
+                alpha = 0
 
             # Deciding whether to reject the update of the parameter
             u = np.random.default_rng().uniform(0, 1, 1)[0]
