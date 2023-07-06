@@ -27,7 +27,7 @@ class FakeDataGen2D_Poisson:
         self.FakeData = np.asanyarray([np.random.poisson(datai) for datai in self.FakeData])
 
 class LikeliFuncGen:
-    def __init__(self, Data, pdf):
+    def __init__(self, Data, pdf, Prior=None):
 
         """
 
@@ -47,9 +47,13 @@ class LikeliFuncGen:
 
         self.Data = Data
         self.pdf = pdf
+        self.Prior = Prior
+        if (self.Prior==None):
+            def constantPrior(params):
+                return 1
+            self.Prior = constantPrior
 
-    def l(self, params):
-
+    def Likelihood(self, params):
         """
         
         The Likelihood Function
@@ -68,4 +72,21 @@ class LikeliFuncGen:
         self.lambda_theta = np.floor(self.pdf.f(np.column_stack((self.Data.x.flatten(), self.Data.y.flatten())))*((self.Data.Data_range[0][1]-self.Data.Data_range[0][0])*(self.Data.Data_range[1][1]-self.Data.Data_range[1][0])/(self.Data.bins)**2)*self.Data.scaler)
         likeli = np.power(self.lambda_theta, self.Data.FakeData)*np.exp(-self.lambda_theta)/(spc.factorial(self.Data.FakeData))
         return np.sum(likeli)
+    
+    def Posterior(self, params):
+
+        """
         
+        The Posterior Function
+
+        Arguments
+        ---------
+        params : the parameter values of the probability denstiy function
+
+        Returns
+        -------
+        (float)
+        
+        """
+        
+        return self.Likelihood(params)*self.Prior(params)
