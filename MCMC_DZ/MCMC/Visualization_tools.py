@@ -316,7 +316,7 @@ def density_plot(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", burn_
         X_max = X[max_idx//hist.shape[0], max_idx%hist.shape[0]]
         Y_max = Y[max_idx//hist.shape[0], max_idx%hist.shape[0]]
         hist_max = hist[max_idx//hist.shape[0], max_idx%hist.shape[0]]
-        ax.scatter(X_max, Y_max, hist_max, c="red", marker='o', linewidths=2, label=f"The Maximum density point ({x_name}, {y_name}) = ({X_max, Y_max})")
+        ax.scatter(X_max, Y_max, hist_max, c="red", marker='o', linewidths=2, label=f"The Maximum density point ({x_name}, {y_name}) = ({X_max:.3f} , {Y_max:.3f})")
         ax.set_xlabel(x_name)
         ax.set_ylabel(y_name)
         ax.set_zlabel("Counts")
@@ -403,7 +403,7 @@ def density_plot(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", burn_
         max_idx = np.argmax(hist)
         X_max = X[max_idx//hist.shape[0], max_idx%hist.shape[0]]
         Y_max = Y[max_idx//hist.shape[0], max_idx%hist.shape[0]]
-        ax.scatter(X_max, Y_max, c="red", marker='o', linewidths=2, label=f"The Maximum density point ({x_name}, {y_name}) = ({X_max, Y_max})")
+        ax.scatter(X_max, Y_max, c="red", marker='o', linewidths=2, label=f"The Maximum density point ({x_name}, {y_name}) = ({X_max:.3f}, {Y_max:.3f})")
         ax.set_xlabel(x_name)
         ax.set_ylabel(y_name)
         ax.legend()
@@ -414,6 +414,7 @@ def density_plot(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", burn_
         if (Save_fig): 
             plt.savefig(fig_name+".png")
         plt.show()
+
 
 
 
@@ -503,9 +504,11 @@ def PlotHeatmap(x, y, z, xlabel, ylabel, zlabel, Plot_Max=False, Plot3D=False):
         fig.colorbar(ax.plot_surface(x, y, z, cmap='viridis'))
         max_idx = np.argmax(z)
         if Plot_Max:
-            x_max = x[max_idx//z.shape[0], max_idx%z.shape[0]]
-            y_max = y[max_idx//z.shape[0], max_idx%z.shape[0]]
-            z_max = z[max_idx//z.shape[0], max_idx%z.shape[0]]
+            row = int(max_idx/z.shape[1])
+            col = int(max_idx%z.shape[1])
+            x_max = x[row, col]
+            y_max = y[row, col]
+            z_max = z[row, col]
             ax.scatter(x_max, y_max, z_max, c='red', marker='o', linewidths=2, label=f"The Maxumum likelihood point ({xlabel}, {ylabel}) = ({x_max:.3f}, {y_max:.3f})")
             ax.legend()
 
@@ -520,8 +523,8 @@ def PlotHeatmap(x, y, z, xlabel, ylabel, zlabel, Plot_Max=False, Plot3D=False):
         fig.colorbar(ax.imshow(z, cmap='viridis', origin='lower', extent=[x.min(), x.max(), y.min(), y.max()], aspect='auto'))
         max_idx = np.argmax(z)
         if Plot_Max:
-            x_max = x[max_idx//z.shape[0], max_idx%z.shape[0]]
-            y_max = y[max_idx//z.shape[0], max_idx%z.shape[0]]
+            x_max = x[max_idx//z.shape[1], max_idx%z.shape[1]]
+            y_max = y[max_idx//z.shape[1], max_idx%z.shape[1]]
             ax.scatter(x_max, y_max, c='red', marker='o', linewidths=2, label=f"The Maxumum likelihood point ({xlabel}, {ylabel}) = ({x_max:.3f}, {y_max:.3f})")
             ax.legend()
 
@@ -531,3 +534,83 @@ def PlotHeatmap(x, y, z, xlabel, ylabel, zlabel, Plot_Max=False, Plot3D=False):
 
     plt.tight_layout()
     plt.show()
+
+import plotly
+
+def UpdatingPlot(Data, Data_range, high_light_points=10):
+    """
+    Plot the updating points of the MCMC algorithm
+
+    
+    """
+    # Circle properties
+    circle_width = 1
+    circle_color = 'green'
+
+    # Create initial scatter plot
+    scatter = go.Scatter(
+        x=[Data[Data_range[0], 0]],
+        y=[Data[Data_range[0], 1]],
+        mode='markers',
+        marker=dict(color='red')
+    )
+
+    # Create empty circle trace
+    circle = go.Scatter(
+        x=[],
+        y=[],
+        mode='markers',
+        marker=dict(
+            size=circle_width,
+            color=circle_color,
+            line=dict(width=1, color=circle_color)
+        )
+    )
+
+    # Create figure
+    fig = go.Figure(data=[scatter, circle])
+
+    # Set layout
+    fig.update_layout(
+        xaxis=dict(range=[Data[:, 0].min(), Data[:, 0].max()]),
+        yaxis=dict(range=[Data[:, 1].min(), Data[:, 1].max()]),
+        width=600,
+        height=600
+    )
+
+    # Animation frames
+    frames = []
+    for i in range(Data_range[1] - Data_range[0]):
+        x = Data[:i+1, 0]
+        y = Data[:i+1, 1]
+
+        # Determine colors for the points
+        colors = ['red'] * max([i-high_light_points, 0]) + ['green']*9 + ['blue'] 
+        # Create scatter trace with updated colors
+        scatter = go.Scatter(x=x, y=y, mode='markers', marker=dict(color=colors))
+
+        frame = go.Frame(data=[scatter, circle], layout=go.Layout(transition={'duration': 100, 'easing': 'linear'}))
+        frames.append(frame)
+
+    # Add frames to the figure
+    fig.frames = frames
+
+    # Play animation in an infinite loop
+    fig.update_layout(
+        updatemenus=[dict(
+            type='buttons',
+            buttons=[dict(
+                label='Play',
+                method='animate',
+                args=[None, {
+                    'frame': {'duration': 100, 'redraw': True},
+                    'fromcurrent': True,
+                    'mode': 'immediate',
+                    'transition': {'duration': 0}
+                }],
+            )],
+        )]
+    )
+
+    # Show the animation
+    plotly.offline.plot(fig)
