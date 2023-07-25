@@ -75,7 +75,7 @@ class LikeliFuncGen:
         # likeli = np.zeros(self.lambda_theta.shape[0])
         # likeli[range] = (np.power(self.lambda_theta[range], self.Data.BinsValue[range]) * np.exp(-self.lambda_theta[range])/ spc.factorial(self.Data.BinsValue[range]))
         likeli = (np.power(self.lambda_theta, self.Data.BinsValue) * np.exp(-self.lambda_theta)/ spc.factorial(self.Data.BinsValue))
-        return np.sum(likeli)
+        return np.sum(likeli)/(self.Data.bins**2)
     
     def Posterior(self, params):
 

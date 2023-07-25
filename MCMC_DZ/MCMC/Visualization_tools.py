@@ -158,9 +158,9 @@ def targetDis_step_plot(Thetas, rho: Callable, target_type: str, burn_in: int, r
         plt.show()
 
 from matplotlib.patches import Rectangle
+from matplotlib.colors import ListedColormap
 
-
-def density_plots(Thetas, plot_axis, bins, burn_in, axis_name=[], cr_1D=0, mark_highest_density=False, figsize=(10, 9), cmap='viridis'):
+def density_plots(Thetas, plot_axis, bins, burn_in, axis_name=[], cr_1D=0, cr_2D=0, figsize=(10, 9), cmap='viridis', information=""):
     """
     Plot the density of each axis and the heat map of each pair of axis    
 
@@ -170,9 +170,10 @@ def density_plots(Thetas, plot_axis, bins, burn_in, axis_name=[], cr_1D=0, mark_
     plot_axis (List[int]): the axis plotted by the function
     bins (int): the number of bins of each histogram and heat map
     burn_in (int): the number of the data points want to "burn_in" for the graph
-    cr_1D (float): the credible region of each 1D density histgram
+    cr_1D (float): the credible region of each 1D density histogram
     figsize: the figure size of the plots
     cmap: the color map used for the 2D histogram
+    information (str): information to be displayed on the right corner of the plot
 
     Returns
     -------
@@ -191,18 +192,13 @@ def density_plots(Thetas, plot_axis, bins, burn_in, axis_name=[], cr_1D=0, mark_
         for i in range(0,n_axis):
             for j in range(0, i+1):
                 if i==j:
-                    cs, bs, patches = axes[i, j].hist(Thetas[burn_in:, plot_axis[i]], bins=bins)
+                    cs, bs, patches = axes[i, j].hist(Thetas[burn_in:, plot_axis[i]], bins=bins, color="steelblue")
                     if axis_name:
                         axes[i, j].set_xlabel(axis_name[i])
                     else:
                         axes[i, j].set_xlabel(f"$x_{plot_axis[i]}$")
                     axes[i, j].set_ylabel("Counts")
-                    max_count_idx = np.argmax(cs)
-                    bin_center = (bs[max_count_idx] + bs[max_count_idx+1]) / 2
-                    if mark_highest_density:    
-                        axes[i, j].plot([bin_center, bin_center], [0, cs[max_count_idx]], color='blue', linestyle='--')
-                    axes[i, j].set_title("$argmax_{x}$(Counts)"+f" = {np.round(bin_center, 3)}", fontsize=10)
-                    if cr_1D>0:
+                    if (cr_1D):
                         CR_1D[i] = []
                         posterior_prob = 0
                         posts = cs/(datasize-burn_in)
@@ -212,10 +208,22 @@ def density_plots(Thetas, plot_axis, bins, burn_in, axis_name=[], cr_1D=0, mark_
                             posterior_prob += posts[max_pos_idx]
                             posts[max_pos_idx] = -1
                             CR_1D[i].append(bs[max_pos_idx:max_pos_idx+2])
-                            patches[max_pos_idx].set_facecolor("steelblue")
+                            patches[max_pos_idx].set_facecolor("#ec2d01")
 
                 else:
-                    hist = axes[i, j].hist2d(Thetas[burn_in:, plot_axis[j]], Thetas[burn_in:, plot_axis[i]], bins=bins, cmap=cmap)
+                    # Create the heatmap using hist2d
+                    counts, x_edges, y_edges = np.histogram2d(Thetas[burn_in:, plot_axis[j]], Thetas[burn_in:, plot_axis[i]], bins=bins)
+                    if (cr_2D):
+                        threshold = np.percentile(counts, (1-cr_2D) * 100)
+                        # Create a custom colormap with orange for the credible region and use it for the heatmap
+                        cmap_custom = plt.get_cmap(cmap)
+                        cmap_custom = ListedColormap(cmap_custom.colors)
+                        cmap_custom.set_over("#ec2d01")
+                        heatmap = axes[i, j].imshow(counts.T, extent=[x_edges[0], x_edges[-1], y_edges[0], y_edges[-1]], cmap=cmap_custom, origin='lower', aspect='auto', vmax=threshold)
+                    else:
+                        # Plot the heatmap without the credible region
+                        heatmap = axes[i, j].imshow(counts.T, extent=[x_edges[0], x_edges[-1], y_edges[0], y_edges[-1]], cmap=cmap, origin='lower', aspect='auto')
+
                     if axis_name:
                         axes[i, j].set_xlabel(axis_name[j])
                         axes[i, j].set_ylabel(axis_name[i])
@@ -225,19 +233,32 @@ def density_plots(Thetas, plot_axis, bins, burn_in, axis_name=[], cr_1D=0, mark_
                     fig.delaxes(axes[j, i])
 
         # Add colorbar to the whole plot
-        cbar_ax = fig.add_axes([0.95, (1/n_axis)*1.1, 0.02, 1-(1/n_axis)*1.15]) # left, bottom, width, height
-        fig.colorbar(hist[3], cax=cbar_ax)
+        cbar_ax = fig.add_axes([0.95, (1/n_axis)*1.08, 0.02, 1-(1/n_axis)*1.18]) # left, bottom, width, height
+        fig.colorbar(heatmap, cax=cbar_ax)
 
+        N = "NULL"
         fig.subplots_adjust(right=0.85, wspace=0.3, hspace=0.3)
+        legend_text = f"Credible Region(1D) = {cr_1D if cr_1D else N}, Credible Region(2D) = {cr_2D if cr_2D else N}"
+        fig.legend(fontsize=10, handles=[Rectangle((0,0),1,1,color="#ec2d01")], labels=[legend_text], loc="upper right", bbox_to_anchor=(1.0, 1.0))  # Adjust the position of the legend to the right upper corner
+
+        # Add the information board on the right-hand corner of the plot, aligned with the legend
+        info_ax = fig.add_axes([(1-1/n_axis) * 1.15, 0.87, 0.15, 0.1], frame_on=False)  # left, bottom, width, height
+        info_ax.set_xticks([])
+        info_ax.set_yticks([])
+        info_ax.text(0, 0.5, information, fontsize=12, va='center', bbox=dict(facecolor='white', alpha=0.5, edgecolor='black'))
+
         fig.tight_layout()
-        fig.legend(handles=[Rectangle((0,0),1,1,color="steelblue")], labels=[f"Credible Region = {cr_1D}"], loc="upper center")
+
     plt.show()
     return CR_1D
 
 
+
+
+
 import plotly.graph_objects as go
 
-def density_plot(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", burn_in=0, credible_region=0.95, figsize=(800, 800), alpha=1, label="", Save_fig=False, fig_name="3D density plot", Plot3D=False, Interact3D=False):
+def density_plot(Thetas, bins, x_axis=0, y_axis=1, x_name="x", y_name="y", burn_in=0, credible_region=0, figsize=(800, 800), alpha=1, label="", Save_fig=False, fig_name="3D density plot", Plot3D=False, Interact3D=False):
     """
     Plot an interactive 3D heatmap of a pair of dimensions from the input data.
 
