@@ -79,12 +79,18 @@ class MHMC:
         for s in range(0, steps):
             # Updating the parameter from the proposal disribution
             theta_1 = qSamp(theta_0)
+            rho_theta_0 = self.rho(theta_0)
             rho_theta_1 = self.rho(theta_1)
-            if (rho_theta_1):
-                if self.log_likelihood:
-                    alpha = min(1, np.exp(rho_theta_1)*np.exp(qProb(theta_1, theta_0))*np.exp(-self.rho(theta_0))*np.exp(-qProb(theta_0, theta_1)))
+            if (rho_theta_0 and rho_theta_0!=np.nan):
+                if (rho_theta_1 and rho_theta_1!=np.nan):
+                    if self.log_likelihood:
+                        alpha = min(1, np.exp(rho_theta_1)*np.exp(qProb(theta_1, theta_0))*np.exp(-rho_theta_0)*np.exp(-qProb(theta_0, theta_1)))
+                    else:
+                        alpha = min(1, (rho_theta_1*qProb(theta_1, theta_0))/(rho_theta_0*qProb(theta_0, theta_1)))
                 else:
-                    alpha = min(1, (rho_theta_1*qProb(theta_1, theta_0))/(self.rho(theta_0)*qProb(theta_0, theta_1)))
+                    alpha = 0
+            elif (rho_theta_1 and rho_theta_1!=np.nan):
+                alpha = 1
             else:
                 alpha = 0
 

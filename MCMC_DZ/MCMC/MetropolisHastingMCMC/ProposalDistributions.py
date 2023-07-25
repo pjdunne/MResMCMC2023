@@ -32,6 +32,7 @@ class UniformProposalDistribution:
         # Setting the parameters of the proposal distribution
         self.radius = radius
         self.Dim = Dim
+        self.name = "UniformProposalDistribution"
     
     def qProb(self, theta_1: (np.array), theta_0: (np.array)) -> float:
 
@@ -99,7 +100,7 @@ class UniformProposalDistribution:
 class GaussianProposalDistribution:
     def __init__(
         self,
-        sd: float,
+        sd: np.array,
         Dim: float,
         seed=123
     ) -> None:
@@ -119,8 +120,9 @@ class GaussianProposalDistribution:
         # Setting the random seed of the numpy
         np.random.seed(seed)
         # Setting the parameters of the proposal distribution
-        self.sd = sd
+        self.sd = np.asarray(sd)
         self.Dim = Dim
+        self.name = "GaussianProposalDistribution"
 
     def qProb(self, theta_1: (np.array), theta_0: (np.array)) -> float:
 
@@ -141,10 +143,8 @@ class GaussianProposalDistribution:
         """
 
 
-        self.p = 1
-        for i in range(0, self.Dim):
-            self.p *= np.exp(-(((theta_0[i]-theta_1[i])/self.sd)**2)/2)/(self.sd*np.sqrt(2*np.pi))
-        return self.p
+        self.p = np.exp(-(((theta_0-theta_1)/self.sd)**2)/2) / (self.sd * np.sqrt(2*np.pi))
+        return np.prod(self.p)
 
     def log_qProb(self, theta_1: (np.array), theta_0: (np.array)) -> float:
 
@@ -165,10 +165,8 @@ class GaussianProposalDistribution:
         """
 
 
-        self.p = 1
-        for i in range(0, self.Dim):
-            self.p *= np.exp(-(((theta_0[i]-theta_1[i])/self.sd)**2)/2)/(self.sd*np.sqrt(2*np.pi))
-        return np.log(self.p)
+        self.p = np.exp(-(((theta_0-theta_1)/self.sd)**2)/2)/(self.sd*np.sqrt(2*np.pi))
+        return np.sum(np.log(self.p))
     
     def qSample(self, theta: (np.array)) -> (np.array):
 
@@ -201,6 +199,7 @@ class HamiltonianProposalFunction:
         self.epsilon = epsilon
         self.L = L
         self.log_likelihood = log_likelihood
+        self.name = "HamiltonianProposalFunction"
     
     def U(
         self,
@@ -256,7 +255,11 @@ class HamiltonianProposalFunction:
 
             theta_pos[i] += self.epsilon
             theta_neg[i] -= self.epsilon
-            Res = np.append(Res, (-self.U(theta_pos)+self.U(theta_neg))/(2*self.epsilon))
+            Resi = (-self.U(theta_pos)+self.U(theta_neg))/(2*self.epsilon)
+            if (Resi!=0 and Resi!=np.nan):
+                Res = np.append(Res, Resi)
+            else:
+                Res = np.append(Res, 0)
         return Res
     
     def log_qProb(self, theta_1: (np.array), theta_0: (np.array)) -> float:
@@ -276,131 +279,8 @@ class HamiltonianProposalFunction:
 
         """
     
-        return -((np.linalg.norm(np.asmatrix(self.p1 if (theta_1==self.theta1).all() else self.p0), ord="fro"))**2)/2
-
-
-    def qSample(self, theta: np.array) -> (np.array):
-
-        """
-        Drawing the proposal value of the parameter from the proposal distribution with given the current value of the parameter
-
-        Arguments
-        ---------
-        theta_n: the current value of the parameter
-
-        Returns
-        -------
-        theta_nPlus1: The proposal value of the parameter
-
-
-        """
-
-        # the ”positions” which are independent standard normal variables
-        self.p1 = np.random.default_rng().normal(0,1,theta.shape[0])
-        self.theta1 = theta
-        self.p0 = self.p1
-        # At the beginning, take a half step for momentum.
-        self.p1 = self.p1 - (self.epsilon*self.dU_dtheta(self.theta1)/2)
-        for i in range(0, self.L):
-            # Take a full step for the position
-            self.theta1 = self.theta1 + self.epsilon*self.p1
-            # Unless at the end of the trajectory, take a full step for the momentum
-            self.p1 = (self.p1 - self.epsilon*self.dU_dtheta(self.theta1)) if (i<(self.L-1)) else self.p1
-        # At the end, take a half step for momentum.
-        self.p1 = self.p1 - (self.epsilon*self.dU_dtheta(self.theta1)/2)
-        # To make the proposal symmetric, negate momentum at end of trajectory
-        self.p1 = -self.p1
-        return self.theta1
-
-class HamiltonianProposalFunction_vec:
-
-    def __init__(
-            self,
-            rho,
-            epsilon: float,
-            L: int,
-            log_likelihood = False
-    ):
-        self.rho = rho
-        self.epsilon = np.float64(epsilon)
-        self.L = L
-        self.log_likelihood = log_likelihood
-    
-    def U(
-        self,
-        theta
-    ) -> float:
-
-        """
-        The potential energy function: U(theta)
-        This should be inputed as the target distribution to the MHMCMC
-        And you should set the log_likelihood=True
-
-        Arguments
-        ---------
-        theta: the inputted value of the parameter theta
-
-        Returns
-        -------
-        The potential energy: -log(probability distribution of theta)
-
-
-        """
-        if self.log_likelihood:
-            return self.rho(theta)
-        else:
-            return np.log(self.rho(theta))
-
-    def dU_dtheta(
-        self,
-        theta: (np.array)
-    ):
-
-        """
-        
-        The derivative of the potential energy function
-
-        Arguments
-        ---------
-        theta: the inputted value of the parameter theta
-
-        Returns
-        -------
-        The derivative of the potential energy respect to theta: d(-log(probability distribution of theta))/d(theta)
-
-
-        """
-
-        def dU_dthetai(i):
-            i = i[0]
-            theta_pos = theta.copy()
-            theta_neg = theta.copy()
-            theta_pos[i] += self.epsilon
-            theta_neg[i] -= self.epsilon
-            return (-self.U(theta_pos) + self.U(theta_neg)) / (2 * self.epsilon)
-        Idx = np.asarray(range(theta.shape[0]))
-        Res = np.apply_along_axis(dU_dthetai, axis=1, arr=Idx[np.newaxis, :].T)
-        return Res
-    
-
-    def log_qProb(self, theta_1: (np.array), theta_0: (np.array)) -> float:
-
-        """
-        
-        The kinetic energy function
-
-        Arguments
-        ---------
-        theta: the inputted value of the parameter theta
-
-        Returns
-        -------
-        The kinetic energy respect to theta
-
-
-        """
-    
-        return -((np.linalg.norm(np.asmatrix(self.p1 if (theta_1==self.theta1).all() else self.p0), ord="fro"))**2)/2
+        # return -(np.sum((self.p1 if (theta_1==self.theta1).all() else self.p0) ** 2))/2
+        return 1
 
 
     def qSample(self, theta: np.array) -> (np.array):
