@@ -22,7 +22,7 @@ def HMC(epoch, L, epsilon, U, grad_U, current_theta):
 
     
     """
-    
+    thetas = []
     theta_accept = []
     theta_reject = []
 
@@ -64,8 +64,10 @@ def HMC(epoch, L, epsilon, U, grad_U, current_theta):
             current_theta = theta
             #return (theta) # accept
             theta_accept.append(theta)
+            thetas.append(theta)
         else:
             theta_reject.append(theta)
+            thetas.append(current_theta)
             #return (current_theta) # reject
 
-    return theta_accept, theta_reject
+    return thetas, theta_accept, theta_reject
