@@ -92,7 +92,7 @@ class MHMC:
             elif (rho_theta_1 and rho_theta_1!=np.nan):
                 alpha = 1
             else:
-                alpha = 0
+                alpha = 0.5
 
             # Deciding whether to reject the update of the parameter
             u = np.random.default_rng().uniform(0, 1, 1)[0]
@@ -102,7 +102,7 @@ class MHMC:
                     acceptanceRate += 1
             Thetas = np.append(Thetas, np.array([theta_0]), axis=0)
             if OutputRunTime:
-                if (s%OutputRunTime)==0:
+                if ((s+1)%OutputRunTime)==0:
                     RunTime.append(time.perf_counter() - start_time)
             if MaxTime:
                 if ((time.perf_counter()-start_time)>MaxTime):
