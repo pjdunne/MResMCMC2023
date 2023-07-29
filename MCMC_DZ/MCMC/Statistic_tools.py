@@ -94,3 +94,9 @@ class LikeliFuncGen:
         """
         
         return self.Likelihood(params)*self.Prior(params) + self.shift
+
+def Saving_Data(Data, FileName="MCMCoutput.npz"):
+    np.savez(FileName, **Data)
+
+def Loading_Data(FileName):
+    return dict(np.load(FileName, allow_pickle=True))

@@ -33,8 +33,9 @@ class UniformProposalDistribution:
         self.radius = radius
         self.Dim = Dim
         self.name = "UniformProposalDistribution"
+        self.informations = {"PD_radius": radius}
     
-    def qProb(self, theta_1: (np.array), theta_0: (np.array)) -> float:
+    def pdf(self, theta_1: (np.array), theta_0: (np.array)) -> float:
 
         """
 
@@ -56,7 +57,7 @@ class UniformProposalDistribution:
         self.p = (1/(2*self.radius))**self.Dim
         return self.p
 
-    def log_qProb(self, theta_1: (np.array), theta_0: (np.array)) -> float:
+    def log_pdf(self, theta_1: (np.array), theta_0: (np.array)) -> float:
 
         """
 
@@ -78,7 +79,7 @@ class UniformProposalDistribution:
         self.p = (1/(2*self.radius))**self.Dim
         return np.log(self.p)
     
-    def qSample(self, theta: (np.array)) -> (np.array):
+    def sampling(self, theta: (np.array)) -> (np.array):
 
         """
         Drawing the proposal value of the parameter from the proposal distribution with given the current value of the parameter
@@ -123,8 +124,9 @@ class GaussianProposalDistribution:
         self.sd = np.asarray(sd)
         self.Dim = Dim
         self.name = "GaussianProposalDistribution"
+        self.informations = {"PD_sd": sd}
 
-    def qProb(self, theta_1: (np.array), theta_0: (np.array)) -> float:
+    def pdf(self, theta_1: (np.array), theta_0: (np.array)) -> float:
 
         """
 
@@ -146,7 +148,7 @@ class GaussianProposalDistribution:
         self.p = np.exp(-(((theta_0-theta_1)/self.sd)**2)/2) / (self.sd * np.sqrt(2*np.pi))
         return np.prod(self.p)
 
-    def log_qProb(self, theta_1: (np.array), theta_0: (np.array)) -> float:
+    def log_pdf(self, theta_1: (np.array), theta_0: (np.array)) -> float:
 
         """
 
@@ -168,7 +170,7 @@ class GaussianProposalDistribution:
         self.p = np.exp(-(((theta_0-theta_1)/self.sd)**2)/2)/(self.sd*np.sqrt(2*np.pi))
         return np.sum(np.log(self.p))
     
-    def qSample(self, theta: (np.array)) -> (np.array):
+    def sampling(self, theta: (np.array)) -> (np.array):
 
         """
         Drawing the proposal value of the parameter from the proposal distribution with given the current value of the parameter
@@ -200,6 +202,7 @@ class HamiltonianProposalFunction:
         self.L = L
         self.log_likelihood = log_likelihood
         self.name = "HamiltonianProposalFunction"
+        self.informations = {"PF_epsilon": epsilon, "PF_L": L}
     
     def U(
         self,
@@ -262,7 +265,7 @@ class HamiltonianProposalFunction:
                 Res = np.append(Res, 0)
         return Res
     
-    def log_qProb(self, theta_1: (np.array), theta_0: (np.array)) -> float:
+    def log_pdf(self, theta_1: (np.array), theta_0: (np.array)) -> float:
 
         """
         
@@ -279,11 +282,10 @@ class HamiltonianProposalFunction:
 
         """
     
-        # return -(np.sum((self.p1 if (theta_1==self.theta1).all() else self.p0) ** 2))/2
-        return 1
+        return -(np.sum((self.p1 if (theta_1==self.theta1).all() else self.p0) ** 2))/2
 
 
-    def qSample(self, theta: np.array) -> (np.array):
+    def sampling(self, theta: np.array) -> (np.array):
 
         """
         Drawing the proposal value of the parameter from the proposal distribution with given the current value of the parameter

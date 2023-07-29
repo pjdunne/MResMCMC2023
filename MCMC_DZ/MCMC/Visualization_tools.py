@@ -114,7 +114,7 @@ def auto_corr_plot(Thetas, plot_nth_theta, theta_index, max_time_lag=None, data_
             plt.ylabel("Auto-Correlation Value")
             plt.show()
 
-def targetDis_step_plot(Thetas, rho: Callable, target_type: str, burn_in: int, return_maximum=False, return_minimum=False, figsize=(6,8)):
+def targetDis_step_plot(Thetas, rho: Callable, target_type: str, burn_in=0, return_maximum=False, return_minimum=False, figsize=(6,8)):
 
     """
     
